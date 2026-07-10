@@ -95,7 +95,7 @@ function bookingRow(b) {
         <span class="status-badge ${cls}">${label}</span>
       </div>
       <div class="sub">${esc(b.client_name)}${b.client_username ? ' · @' + esc(b.client_username) : ''}${b.client_phone ? ' · ' + esc(b.client_phone) : ''}</div>
-      <div class="sub">${esc(b.shoot_type || '')} ${b.shoot_date ? '· ' + esc(b.shoot_date) : ''}</div>
+      <div class="sub">${b.shoot_date ? 'Дата: ' + esc(b.shoot_date) : ''}</div>
       ${b.status === 'new' ? `
         <div style="display:flex; gap:8px; margin-top:8px;">
           <button class="btn small ghost-acid" data-act="confirm" data-id="${b.id}">Подтвердить</button>
@@ -189,7 +189,7 @@ async function renderModels() {
 async function renderModelForm(id) {
   setBack(true, '#/models');
   const isEdit = !!id;
-  let model = { name: '', category: 'women', height: '', bust: '', weight: '', age: '', city: '', bio: '', status: 'active', photo_main: null, photos: [] };
+  let model = { name: '', category: 'women', height: '', bust: '', weight: '', age: '', city: '', nationality: '', services: '', price: '', bio: '', status: 'active', photo_main: null, photos: [] };
 
   app.innerHTML = `<div class="detail-body"><div class="skeleton" style="height:200px;border-radius:3px;"></div></div>`;
 
@@ -225,6 +225,9 @@ async function renderModelForm(id) {
             ${CITIES.map(c => `<option value="${c}" ${model.city === c ? 'selected' : ''}>${c}</option>`).join('')}
           </select>
         </div>
+        <div class="field"><label>Национальность</label><input id="f_nationality" type="text" value="${esc(model.nationality || '')}" placeholder="Например, Россия"></div>
+        <div class="field"><label>Стоимость</label><input id="f_price" type="text" value="${esc(model.price || '')}" placeholder="Например, от 150$/час"></div>
+        <div class="field"><label>Услуги</label><textarea id="f_services" rows="3" placeholder="Впишите вручную, каждую услугу с новой строки">${esc(model.services || '')}</textarea></div>
         <div class="field"><label>О модели</label><textarea id="f_bio" rows="3">${esc(model.bio)}</textarea></div>
         <div class="field"><label>Статус</label>
           <select id="f_status">
@@ -261,6 +264,9 @@ async function renderModelForm(id) {
     fd.append('age', document.getElementById('f_age').value);
     fd.append('bust', document.getElementById('f_bust').value);
     fd.append('city', document.getElementById('f_city').value);
+    fd.append('nationality', document.getElementById('f_nationality').value.trim());
+    fd.append('price', document.getElementById('f_price').value.trim());
+    fd.append('services', document.getElementById('f_services').value.trim());
     fd.append('bio', document.getElementById('f_bio').value.trim());
     fd.append('status', document.getElementById('f_status').value);
 

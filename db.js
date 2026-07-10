@@ -59,5 +59,14 @@ if (!modelColumns.includes('city')) {
 if (!modelColumns.includes('age')) {
   db.exec(`ALTER TABLE models ADD COLUMN age INTEGER`);
 }
+if (!modelColumns.includes('services')) {
+  db.exec(`ALTER TABLE models ADD COLUMN services TEXT`);
+}
+if (!modelColumns.includes('price')) {
+  db.exec(`ALTER TABLE models ADD COLUMN price TEXT`);
+}
+if (!modelColumns.includes('nationality')) {
+  db.exec(`ALTER TABLE models ADD COLUMN nationality TEXT`);
+}
 
 module.exports = db;

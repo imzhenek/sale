@@ -89,6 +89,19 @@ button, input, textarea, select{ font-family: inherit; }
 .spec-cell .value{ font-family: var(--font-mono); font-size: 15px; margin-top: 3px; }
 .bio{ color: var(--text-dim); font-size: 14px; margin-bottom: 20px; white-space: pre-line; }
 
+.price-tag{
+  display:inline-block; font-family: var(--font-mono); font-size: 13px; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--acid); border: 1px solid rgba(212,255,61,0.4);
+  padding: 6px 12px; margin-bottom: 16px;
+}
+.services-block{ margin-bottom: 20px; }
+.services-title{ font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 8px; }
+.services-list{ display:flex; flex-wrap:wrap; gap: 6px; }
+.service-pill{
+  font-family: var(--font-mono); font-size: 12px; color: var(--text);
+  border: 1px solid var(--line); padding: 5px 10px; border-radius: var(--radius);
+}
+
 /* --- ticket / form --- */
 .ticket{ border: 1px dashed var(--line); padding: 16px; background: var(--surface); border-radius: var(--radius); }
 .ticket-head{

@@ -124,15 +124,17 @@ async function renderModel(slug) {
       ${model.photos && model.photos.length ? `<div class="thumb-row">${model.photos.map(p => `<img src="${p}">`).join('')}</div>` : ''}
       <div class="detail-body">
         <h1>${esc(model.name)}</h1>
-        <div class="casting-no">Casting № ${String(model.id).padStart(4, '0')}${model.city ? ' · ' + esc(model.city) : ''}</div>
+        <div class="casting-no">Casting № ${String(model.id).padStart(4, '0')}${model.city ? ' · ' + esc(model.city) : ''}${model.nationality ? ' · ' + esc(model.nationality) : ''}</div>
         <div class="spec-strip spec-strip-4">
           <div class="spec-cell"><div class="label">Возраст</div><div class="value">${model.age || '—'}</div></div>
           <div class="spec-cell"><div class="label">Рост</div><div class="value">${model.height || '—'}</div></div>
           <div class="spec-cell"><div class="label">Грудь</div><div class="value">${model.bust || '—'}</div></div>
           <div class="spec-cell"><div class="label">Вес</div><div class="value">${model.weight || '—'}</div></div>
         </div>
+        ${model.price ? `<div class="price-tag">Стоимость: ${esc(model.price)}</div>` : ''}
         ${model.bio ? `<div class="bio">${esc(model.bio)}</div>` : ''}
-        <a class="btn full" href="#/model/${model.slug}/book">Записать на съёмку</a>
+        ${model.services ? `<div class="services-block"><div class="services-title">Услуги</div><div class="services-list">${model.services.split('\n').filter(Boolean).map(s => `<span class="service-pill">${esc(s.trim())}</span>`).join('')}</div></div>` : ''}
+        <a class="btn full" href="#/model/${model.slug}/book">Выбрать модель</a>
       </div>
     `;
   } catch (e) {
@@ -162,25 +164,9 @@ async function renderBooking(slug) {
           <label>Телефон (по желанию)</label>
           <input id="f_phone" type="tel" placeholder="+7 900 000-00-00">
         </div>
-        <div class="field-row">
-          <div class="field">
-            <label>Тип съёмки</label>
-            <select id="f_type">
-              <option>Editorial</option>
-              <option>Lookbook</option>
-              <option>Реклама</option>
-              <option>Каталог</option>
-              <option>Другое</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Дата</label>
-            <input id="f_date" type="date">
-          </div>
-        </div>
         <div class="field">
-          <label>Локация</label>
-          <input id="f_location" type="text" placeholder="Студия, город...">
+          <label>Дата</label>
+          <input id="f_date" type="date">
         </div>
         <div class="field">
           <label>Комментарий</label>
@@ -211,9 +197,7 @@ async function renderBooking(slug) {
           slug,
           client_name,
           client_phone: document.getElementById('f_phone').value.trim(),
-          shoot_type: document.getElementById('f_type').value,
           shoot_date: document.getElementById('f_date').value,
-          location: document.getElementById('f_location').value.trim(),
           comment: document.getElementById('f_comment').value.trim()
         }
       });
@@ -262,8 +246,7 @@ async function renderMyBookings(justSent) {
             <div class="model">${esc(b.model_name || 'Общий запрос')}</div>
             <span class="status-badge ${cls}">${label}</span>
           </div>
-          <div class="meta">${b.shoot_type || '—'} ${b.shoot_date ? '· ' + b.shoot_date : ''}</div>
-          ${b.location ? `<div class="meta">${esc(b.location)}</div>` : ''}
+          <div class="meta">${b.shoot_date ? 'Желаемая дата: ' + b.shoot_date : ''}</div>
         </div>`;
       }).join('');
   } catch (e) {
