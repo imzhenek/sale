@@ -48,4 +48,13 @@ CREATE TABLE IF NOT EXISTS bookings (
 CREATE INDEX IF NOT EXISTS idx_bookings_client ON bookings(client_telegram_id);
 `);
 
+// Миграция: добавляем колонку веса, если её ещё нет (для уже задеплоенных баз)
+const modelColumns = db.prepare(`PRAGMA table_info(models)`).all().map(c => c.name);
+if (!modelColumns.includes('weight')) {
+  db.exec(`ALTER TABLE models ADD COLUMN weight INTEGER`);
+}
+if (!modelColumns.includes('city')) {
+  db.exec(`ALTER TABLE models ADD COLUMN city TEXT`);
+}
+
 module.exports = db;

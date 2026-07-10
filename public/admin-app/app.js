@@ -64,7 +64,7 @@ async function renderDashboard() {
   if (tg) tg.MainButton.hide();
   app.innerHTML = `
     <div class="hazard-bar"></div>
-    <div class="admin-header"><div class="eyebrow" style="font-family:var(--font-mono);font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:2px;">Admin</div><h1 style="font-family:var(--font-display);text-transform:uppercase;font-size:26px;margin:4px 0 0;">NOIRFRAME</h1></div>
+    <div class="admin-header"><div class="eyebrow" style="font-family:var(--font-mono);font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:2px;">Admin</div><h1 style="font-family:var(--font-display);text-transform:uppercase;font-size:26px;margin:4px 0 0;">LOVEINASIA</h1></div>
     <div class="stat-row" id="stats">
       <div class="stat-card skeleton" style="height:60px;"></div>
       <div class="stat-card skeleton" style="height:60px;"></div>
@@ -172,7 +172,7 @@ async function renderModels() {
         <img src="${m.photo_main || 'https://placehold.co/100x140/1a1a1d/666?text=--'}">
         <div>
           <div class="name">${esc(m.name)}</div>
-          <div class="sub">${m.category} · ${m.status === 'active' ? 'активна' : 'скрыта'}</div>
+          <div class="sub">${m.city ? esc(m.city) + ' · ' : ''}${m.status === 'active' ? 'активна' : 'скрыта'}</div>
         </div>
         <div class="actions">
           <a class="btn small outline" href="#/models/${m.id}/edit">Изм.</a>
@@ -189,7 +189,7 @@ async function renderModels() {
 async function renderModelForm(id) {
   setBack(true, '#/models');
   const isEdit = !!id;
-  let model = { name: '', category: 'women', height: '', bust: '', waist: '', hips: '', shoe_size: '', bio: '', status: 'active', photo_main: null, photos: [] };
+  let model = { name: '', category: 'women', height: '', bust: '', weight: '', city: '', bio: '', status: 'active', photo_main: null, photos: [] };
 
   app.innerHTML = `<div class="detail-body"><div class="skeleton" style="height:200px;border-radius:3px;"></div></div>`;
 
@@ -216,13 +216,10 @@ async function renderModelForm(id) {
         </div>
         <div class="field-row">
           <div class="field"><label>Рост, см</label><input id="f_height" type="number" value="${model.height || ''}"></div>
-          <div class="field"><label>Обувь</label><input id="f_shoe" type="number" value="${model.shoe_size || ''}"></div>
+          <div class="field"><label>Вес, кг</label><input id="f_weight" type="number" value="${model.weight || ''}"></div>
         </div>
-        <div class="field-row">
-          <div class="field"><label>Грудь</label><input id="f_bust" type="number" value="${model.bust || ''}"></div>
-          <div class="field"><label>Талия</label><input id="f_waist" type="number" value="${model.waist || ''}"></div>
-        </div>
-        <div class="field"><label>Бёдра</label><input id="f_hips" type="number" value="${model.hips || ''}"></div>
+        <div class="field"><label>Грудь</label><input id="f_bust" type="number" value="${model.bust || ''}"></div>
+        <div class="field"><label>Город</label><input id="f_city" type="text" value="${esc(model.city || '')}" placeholder="Москва"></div>
         <div class="field"><label>О модели</label><textarea id="f_bio" rows="3">${esc(model.bio)}</textarea></div>
         <div class="field"><label>Статус</label>
           <select id="f_status">
@@ -255,10 +252,9 @@ async function renderModelForm(id) {
     fd.append('name', document.getElementById('f_name').value.trim());
     fd.append('category', document.getElementById('f_category').value);
     fd.append('height', document.getElementById('f_height').value);
-    fd.append('shoe_size', document.getElementById('f_shoe').value);
+    fd.append('weight', document.getElementById('f_weight').value);
     fd.append('bust', document.getElementById('f_bust').value);
-    fd.append('waist', document.getElementById('f_waist').value);
-    fd.append('hips', document.getElementById('f_hips').value);
+    fd.append('city', document.getElementById('f_city').value.trim());
     fd.append('bio', document.getElementById('f_bio').value.trim());
     fd.append('status', document.getElementById('f_status').value);
 

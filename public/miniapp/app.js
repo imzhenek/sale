@@ -57,7 +57,8 @@ function setBack(show, fallback = '#/') {
 
 // --- Screens ---
 
-let currentCategory = 'all';
+let currentCategory = 'women';
+let currentCity = 'all';
 
 async function renderCatalog() {
   setBack(false);
@@ -66,26 +67,32 @@ async function renderCatalog() {
     <div class="hazard-bar"></div>
     <div class="topbar">
       <div class="eyebrow">Casting file / 2026</div>
-      <h1>NOIRFRAME</h1>
+      <h1>LOVEINASIA</h1>
     </div>
-    <div class="filter-row" id="filters">
-      ${['all', 'women', 'men', 'kids'].map(c => `<span data-cat="${c}" class="${c === currentCategory ? 'active' : ''}">${{ all: 'Все', women: 'Женщины', men: 'Мужчины', kids: 'Дети' }[c]}</span>`).join('')}
-    </div>
+    <div class="filter-row" id="cityFilters"></div>
     <div class="model-grid" id="grid">
       ${Array.from({ length: 4 }).map(() => `<div class="tag-card"><div class="photo-wrap skeleton"></div></div>`).join('')}
     </div>
     ${bottomNav('catalog')}
   `;
 
-  document.querySelectorAll('#filters span').forEach(el => {
-    el.onclick = () => { currentCategory = el.dataset.cat; renderCatalog(); };
-  });
-
   try {
-    const { models } = await api(`/models?category=${currentCategory}`);
+    const [{ models }, { cities }] = await Promise.all([
+      api(`/models?category=${currentCategory}${currentCity !== 'all' ? '&city=' + encodeURIComponent(currentCity) : ''}`),
+      api('/cities')
+    ]);
+
+    if (cities.length) {
+      const filters = document.getElementById('cityFilters');
+      filters.innerHTML = ['all', ...cities].map(c => `<span data-city="${esc(c)}" class="${c === currentCity ? 'active' : ''}">${c === 'all' ? 'Все города' : esc(c)}</span>`).join('');
+      filters.querySelectorAll('span').forEach(el => {
+        el.onclick = () => { currentCity = el.dataset.city; renderCatalog(); };
+      });
+    }
+
     const grid = document.getElementById('grid');
     if (!models.length) {
-      grid.outerHTML = `<div class="empty-state">В этой категории пока нет моделей.<br>Загляните чуть позже.</div>`;
+      grid.outerHTML = `<div class="empty-state">В этом городе пока нет моделей.<br>Загляните чуть позже.</div>`;
       return;
     }
     grid.innerHTML = models.map(m => `
@@ -96,7 +103,7 @@ async function renderCatalog() {
         </div>
         <div class="info">
           <h3>${esc(m.name)}</h3>
-          <div class="tag-meta">${m.height ? m.height + ' см' : ''}${(m.bust && m.waist && m.hips) ? ' · ' + m.bust + '-' + m.waist + '-' + m.hips : ''}</div>
+          <div class="tag-meta">${m.city ? esc(m.city) + ' · ' : ''}${m.height ? m.height + ' см' : ''}${m.weight ? ' · ' + m.weight + ' кг' : ''}</div>
         </div>
       </a>
     `).join('');
@@ -117,11 +124,11 @@ async function renderModel(slug) {
       ${model.photos && model.photos.length ? `<div class="thumb-row">${model.photos.map(p => `<img src="${p}">`).join('')}</div>` : ''}
       <div class="detail-body">
         <h1>${esc(model.name)}</h1>
-        <div class="casting-no">Casting № ${String(model.id).padStart(4, '0')}</div>
+        <div class="casting-no">Casting № ${String(model.id).padStart(4, '0')}${model.city ? ' · ' + esc(model.city) : ''}</div>
         <div class="spec-strip">
           <div class="spec-cell"><div class="label">Рост</div><div class="value">${model.height || '—'}</div></div>
-          <div class="spec-cell"><div class="label">Параметры</div><div class="value">${(model.bust && model.waist && model.hips) ? `${model.bust}-${model.waist}-${model.hips}` : '—'}</div></div>
-          <div class="spec-cell"><div class="label">Обувь</div><div class="value">${model.shoe_size || '—'}</div></div>
+          <div class="spec-cell"><div class="label">Грудь</div><div class="value">${model.bust || '—'}</div></div>
+          <div class="spec-cell"><div class="label">Вес</div><div class="value">${model.weight || '—'}</div></div>
         </div>
         ${model.bio ? `<div class="bio">${esc(model.bio)}</div>` : ''}
         <a class="btn full" href="#/model/${model.slug}/book">Записать на съёмку</a>

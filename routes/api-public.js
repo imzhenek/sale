@@ -9,10 +9,25 @@ const router = express.Router();
 // подгружаться быстро, но мы всё равно читаем initData если он есть.
 router.get('/models', (req, res) => {
   const category = req.query.category || 'all';
-  const models = category === 'all'
-    ? db.prepare(`SELECT * FROM models WHERE status = 'active' ORDER BY sort_order, id DESC`).all()
-    : db.prepare(`SELECT * FROM models WHERE status = 'active' AND category = ? ORDER BY sort_order, id DESC`).all(category);
+  const city = req.query.city || 'all';
+
+  const conditions = [`status = 'active'`];
+  const args = [];
+  if (category !== 'all') { conditions.push(`category = ?`); args.push(category); }
+  if (city !== 'all') { conditions.push(`city = ?`); args.push(city); }
+
+  const models = db.prepare(`
+    SELECT * FROM models WHERE ${conditions.join(' AND ')} ORDER BY sort_order, id DESC
+  `).all(...args);
   res.json({ models });
+});
+
+// Список городов, в которых есть активные модели — для построения фильтра
+router.get('/cities', (req, res) => {
+  const rows = db.prepare(`
+    SELECT DISTINCT city FROM models WHERE status = 'active' AND city IS NOT NULL AND city != '' ORDER BY city
+  `).all();
+  res.json({ cities: rows.map(r => r.city) });
 });
 
 router.get('/models/:slug', (req, res) => {

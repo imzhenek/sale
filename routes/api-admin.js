@@ -60,7 +60,7 @@ router.get('/models/:id', (req, res) => {
 });
 
 router.post('/models', upload.fields([{ name: 'photo_main', maxCount: 1 }, { name: 'photos', maxCount: 8 }]), (req, res) => {
-  const { name, category, height, bust, waist, hips, shoe_size, bio, status } = req.body;
+  const { name, category, height, bust, weight, city, bio, status } = req.body;
   if (!name) return res.status(400).json({ error: 'validation', message: 'Укажите имя' });
 
   const slugBase = slugify(name);
@@ -71,9 +71,9 @@ router.post('/models', upload.fields([{ name: 'photo_main', maxCount: 1 }, { nam
   const photos = (req.files['photos'] || []).map(f => `/uploads/${f.filename}`);
 
   const info = db.prepare(`
-    INSERT INTO models (slug, name, category, height, bust, waist, hips, shoe_size, bio, photo_main, photos_json, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(slug, name, category || 'women', height || null, bust || null, waist || null, hips || null, shoe_size || null, bio || null, photoMain, JSON.stringify(photos), status || 'active');
+    INSERT INTO models (slug, name, category, height, bust, weight, city, bio, photo_main, photos_json, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(slug, name, category || 'women', height || null, bust || null, weight || null, city || null, bio || null, photoMain, JSON.stringify(photos), status || 'active');
 
   res.json({ id: info.lastInsertRowid, slug });
 });
@@ -82,7 +82,7 @@ router.put('/models/:id', upload.fields([{ name: 'photo_main', maxCount: 1 }, { 
   const model = db.prepare(`SELECT * FROM models WHERE id = ?`).get(req.params.id);
   if (!model) return res.status(404).json({ error: 'not_found' });
 
-  const { name, category, height, bust, waist, hips, shoe_size, bio, status } = req.body;
+  const { name, category, height, bust, weight, city, bio, status } = req.body;
   let photoMain = model.photo_main;
   if (req.files['photo_main']) photoMain = `/uploads/${req.files['photo_main'][0].filename}`;
 
@@ -92,9 +92,9 @@ router.put('/models/:id', upload.fields([{ name: 'photo_main', maxCount: 1 }, { 
   }
 
   db.prepare(`
-    UPDATE models SET name=?, category=?, height=?, bust=?, waist=?, hips=?, shoe_size=?, bio=?, photo_main=?, photos_json=?, status=?
+    UPDATE models SET name=?, category=?, height=?, bust=?, weight=?, city=?, bio=?, photo_main=?, photos_json=?, status=?
     WHERE id = ?
-  `).run(name, category || 'women', height || null, bust || null, waist || null, hips || null, shoe_size || null, bio || null, photoMain, JSON.stringify(photos), status || 'active', req.params.id);
+  `).run(name, category || 'women', height || null, bust || null, weight || null, city || null, bio || null, photoMain, JSON.stringify(photos), status || 'active', req.params.id);
 
   res.json({ ok: true });
 });
