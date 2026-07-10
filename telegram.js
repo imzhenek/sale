@@ -17,7 +17,7 @@ function bookingText(booking, modelName) {
     `Модель: ${modelName || 'не выбрана / общий запрос'}`,
     `Клиент: ${booking.client_name}${booking.client_username ? ' (@' + booking.client_username + ')' : ''}`,
     booking.client_phone ? `Телефон: ${booking.client_phone}` : null,
-    booking.shoot_type ? `Тип съёмки: ${booking.shoot_type}` : null,
+    booking.shoot_type ? `Тип: ${booking.shoot_type}` : null,
     booking.shoot_date ? `Желаемая дата: ${booking.shoot_date}` : null,
     booking.location ? `Локация: ${booking.location}` : null,
     booking.comment ? `Комментарий: ${booking.comment}` : null

@@ -26,7 +26,7 @@ const I18N = {
     price_label: 'Стоимость:', services_title: 'Основные услуги', services_extra_title: 'Дополнительные услуги', bio_title: 'О модели',
     choose_model_btn: 'Выбрать модель',
     open_via_telegram: 'Откройте агентство через Telegram, чтобы отправить заявку.',
-    ticket_head_title: 'Заявка на съёмку',
+    ticket_head_title: 'Заявка',
     field_name: 'Имя', field_name_ph: 'Как к вам обращаться',
     field_phone: 'Телефон (по желанию)', field_phone_ph: '+7 900 000-00-00',
     field_date: 'Дата', field_comment: 'Комментарий',
