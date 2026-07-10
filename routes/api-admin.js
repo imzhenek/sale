@@ -99,7 +99,7 @@ router.put('/models/:id', upload.fields([{ name: 'photo_main', maxCount: 1 }, { 
   res.json({ ok: true });
 });
 
-router.delete('/models/:id', (req, res) => {
+router.post('/models/:id/delete', (req, res) => {
   db.prepare(`DELETE FROM models WHERE id = ?`).run(req.params.id);
   res.json({ ok: true });
 });

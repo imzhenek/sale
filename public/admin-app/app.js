@@ -347,7 +347,7 @@ async function renderModelForm(id) {
     document.getElementById('deleteBtn').onclick = async () => {
       if (!confirm('Удалить модель безвозвратно?')) return;
       try {
-        await api(`/models/${id}`, { method: 'DELETE' });
+        await api(`/models/${id}/delete`, { method: 'POST' });
         window.location.hash = '#/models';
       } catch (e) { alert(e.message); }
     };

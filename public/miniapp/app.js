@@ -222,7 +222,8 @@ async function renderModel(slug) {
       ${model.photos && model.photos.length ? `<div class="thumb-row">${model.photos.map(p => `<img src="${p}">`).join('')}</div>` : ''}
       <div class="detail-body">
         <h1>${esc(model.name)}</h1>
-        <div class="casting-no">Casting № ${String(model.id).padStart(4, '0')}${model.city ? ' · ' + esc(trCity(model.city)) : ''}${model.nationality ? ' · ' + esc(model.nationality) : ''}</div>
+        <div class="casting-no">Casting № ${String(model.id).padStart(4, '0')}${model.city ? ' · ' + esc(trCity(model.city)) : ''}</div>
+        ${model.nationality ? `<div class="nationality-line">${esc(model.nationality)}</div>` : ''}
         <div class="spec-strip spec-strip-4">
           <div class="spec-cell"><div class="label">${t('spec_age')}</div><div class="value">${model.age || '—'}</div></div>
           <div class="spec-cell"><div class="label">${t('spec_height')}</div><div class="value">${model.height || '—'}</div></div>
