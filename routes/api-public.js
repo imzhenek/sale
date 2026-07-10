@@ -49,6 +49,20 @@ router.post('/bookings', async (req, res) => {
 
   const model = slug ? db.prepare(`SELECT * FROM models WHERE slug = ?`).get(slug) : null;
 
+  // Защита от дублей: если клиент уже отправил такую же заявку (та же модель)
+  // за последние 30 секунд, не создаём вторую — возвращаем уже созданную.
+  const recentDuplicate = db.prepare(`
+    SELECT * FROM bookings
+    WHERE client_telegram_id = ?
+      AND (model_id IS ? OR model_id = ?)
+      AND created_at >= datetime('now', '-30 seconds')
+    ORDER BY created_at DESC LIMIT 1
+  `).get(String(req.tgUser.id), model ? model.id : null, model ? model.id : null);
+
+  if (recentDuplicate) {
+    return res.json({ booking: recentDuplicate });
+  }
+
   const info = db.prepare(`
     INSERT INTO bookings (model_id, client_telegram_id, client_username, client_name, client_phone, shoot_type, shoot_date, location, comment)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)

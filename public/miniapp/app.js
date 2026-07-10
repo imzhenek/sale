@@ -211,6 +211,7 @@ async function renderCatalog() {
 
 async function renderModel(slug) {
   setBack(true, '#/');
+  if (tg) tg.MainButton.hide();
   app.innerHTML = `<div class="detail-photo skeleton"></div>`;
   try {
     const { model } = await api(`/models/${slug}`);
@@ -239,6 +240,9 @@ async function renderModel(slug) {
     app.innerHTML = `<div class="empty-state">${t('model_not_found')}</div>`;
   }
 }
+
+let mainButtonHandler = null;
+let isSubmittingBooking = false;
 
 async function renderBooking(slug) {
   setBack(true, `#/model/${slug}`);
@@ -277,16 +281,19 @@ async function renderBooking(slug) {
   if (tg) {
     tg.MainButton.setText(t('submit_btn'));
     tg.MainButton.show();
-    tg.MainButton.offClick(submit);
-    tg.MainButton.onClick(submit);
+    if (mainButtonHandler) tg.MainButton.offClick(mainButtonHandler);
+    mainButtonHandler = submit;
+    tg.MainButton.onClick(mainButtonHandler);
   }
 
   async function submit() {
+    if (isSubmittingBooking) return;
     const client_name = document.getElementById('f_name').value.trim();
     if (!client_name) {
       document.getElementById('bookingError').innerHTML = `<div class="alert error">${t('error_name_required')}</div>`;
       return;
     }
+    isSubmittingBooking = true;
     tg.MainButton.showProgress(true);
     try {
       await api('/bookings', {
@@ -300,11 +307,13 @@ async function renderBooking(slug) {
         }
       });
       tg.HapticFeedback && tg.HapticFeedback.notificationOccurred('success');
+      if (mainButtonHandler) { tg.MainButton.offClick(mainButtonHandler); mainButtonHandler = null; }
       tg.MainButton.hide();
       window.location.hash = '#/my-bookings?justSent=1';
     } catch (e) {
       document.getElementById('bookingError').innerHTML = `<div class="alert error">${esc(e.message)}</div>`;
     } finally {
+      isSubmittingBooking = false;
       tg.MainButton.hideProgress();
     }
   }
