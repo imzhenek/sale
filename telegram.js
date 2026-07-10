@@ -11,7 +11,7 @@ const STATUS_LABELS = {
 
 function bookingText(booking, modelName) {
   const lines = [
-    `<b>Заявка на съёмку #${booking.id}</b>`,
+    `<b>НОВАЯ ЗАЯВКА! #${booking.id}</b>`,
     `Статус: ${STATUS_LABELS[booking.status] || booking.status}`,
     ``,
     `Модель: ${modelName || 'не выбрана / общий запрос'}`,

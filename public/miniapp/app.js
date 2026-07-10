@@ -23,7 +23,7 @@ const I18N = {
     years_suffix: ' лет', cm_suffix: ' см',
     model_not_found: 'Модель не найдена.',
     spec_age: 'Возраст', spec_height: 'Рост', spec_bust: 'Грудь', spec_weight: 'Вес',
-    price_label: 'Стоимость:', services_title: 'Основные услуги', services_extra_title: 'Дополнительные услуги',
+    price_label: 'Стоимость:', services_title: 'Основные услуги', services_extra_title: 'Дополнительные услуги', bio_title: 'О модели',
     choose_model_btn: 'Выбрать модель',
     open_via_telegram: 'Откройте агентство через Telegram, чтобы отправить заявку.',
     ticket_head_title: 'Заявка на съёмку',
@@ -51,7 +51,7 @@ const I18N = {
     years_suffix: ' y.o.', cm_suffix: ' cm',
     model_not_found: 'Model not found.',
     spec_age: 'Age', spec_height: 'Height', spec_bust: 'Bust', spec_weight: 'Weight',
-    price_label: 'Price:', services_title: 'Services', services_extra_title: 'Additional services',
+    price_label: 'Price:', services_title: 'Services', services_extra_title: 'Additional services', bio_title: 'About the model',
     choose_model_btn: 'Choose model',
     open_via_telegram: 'Open the agency through Telegram to send a request.',
     ticket_head_title: 'Booking request',
@@ -229,7 +229,7 @@ async function renderModel(slug) {
           <div class="spec-cell"><div class="label">${t('spec_weight')}</div><div class="value">${model.weight || '—'}</div></div>
         </div>
         ${model.price ? `<div class="price-tag">${t('price_label')} ${formatVND(model.price)}</div>` : ''}
-        ${model.bio ? `<div class="bio">${esc(model.bio)}</div>` : ''}
+        ${model.bio ? `<div class="services-title" style="margin-bottom:6px;">${t('bio_title')}</div><div class="bio">${esc(model.bio)}</div>` : ''}
         ${model.services ? `<div class="services-block"><div class="services-title">${t('services_title')}</div><div class="services-list">${model.services.split('\n').filter(Boolean).map(s => `<span class="service-pill">${esc(s.trim())}</span>`).join('')}</div></div>` : ''}
         ${model.services_extra ? `<div class="services-block"><div class="services-title">${t('services_extra_title')}</div><div class="services-list">${model.services_extra.split('\n').filter(Boolean).map(s => `<span class="service-pill service-pill-extra">${esc(s.trim())}</span>`).join('')}</div></div>` : ''}
         <a class="btn full" href="#/model/${model.slug}/book">${t('choose_model_btn')}</a>
