@@ -27,7 +27,7 @@ async function handleMessage(message) {
 
   if (text.startsWith('/start')) {
     await sendMessage(chatId,
-      'Добро пожаловать в <b>Loveinasia</b> — модельное агентство.\n\nСмотрите каталог, выбирайте модель и отправляйте заявку на съёмку прямо здесь, в Telegram.',
+      'Добро пожаловать в <b>Loveinasia</b> — модельное агентство.\n\nСмотрите каталог, выбирайте модель и отправляйте заявку прямо здесь, в Telegram.',
       { reply_markup: { inline_keyboard: [[{ text: '📂 Открыть каталог', web_app: { url: `${APP_URL}/miniapp/` } }]] } }
     );
     return;
