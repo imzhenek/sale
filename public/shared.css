@@ -101,6 +101,7 @@ button, input, textarea, select{ font-family: inherit; }
   font-family: var(--font-mono); font-size: 12px; color: var(--text);
   border: 1px solid var(--line); padding: 5px 10px; border-radius: var(--radius);
 }
+.service-pill-extra{ color: var(--text-dim); border-style: dashed; }
 
 /* --- ticket / form --- */
 .ticket{ border: 1px dashed var(--line); padding: 16px; background: var(--surface); border-radius: var(--radius); }

@@ -23,7 +23,7 @@ const I18N = {
     years_suffix: ' лет', cm_suffix: ' см',
     model_not_found: 'Модель не найдена.',
     spec_age: 'Возраст', spec_height: 'Рост', spec_bust: 'Грудь', spec_weight: 'Вес',
-    price_label: 'Стоимость:', services_title: 'Услуги',
+    price_label: 'Стоимость:', services_title: 'Основные услуги', services_extra_title: 'Дополнительные услуги',
     choose_model_btn: 'Выбрать модель',
     open_via_telegram: 'Откройте агентство через Telegram, чтобы отправить заявку.',
     ticket_head_title: 'Заявка на съёмку',
@@ -51,7 +51,7 @@ const I18N = {
     years_suffix: ' y.o.', cm_suffix: ' cm',
     model_not_found: 'Model not found.',
     spec_age: 'Age', spec_height: 'Height', spec_bust: 'Bust', spec_weight: 'Weight',
-    price_label: 'Price:', services_title: 'Services',
+    price_label: 'Price:', services_title: 'Services', services_extra_title: 'Additional services',
     choose_model_btn: 'Choose model',
     open_via_telegram: 'Open the agency through Telegram to send a request.',
     ticket_head_title: 'Booking request',
@@ -75,6 +75,20 @@ const I18N = {
 
 let lang = localStorage.getItem('loveinasia_lang') || 'ru';
 function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.ru[key] || key; }
+
+// Список городов фиксированный (задаётся в админке через выпадающий список),
+// поэтому его, в отличие от свободного текста (био, услуги), можно перевести.
+const CITY_NAMES = {
+  'Нячанг': { ru: 'Нячанг', en: 'Nha Trang' },
+  'Дананг': { ru: 'Дананг', en: 'Da Nang' },
+  'Фукок': { ru: 'Фукок', en: 'Phu Quoc' },
+  'Бангкок': { ru: 'Бангкок', en: 'Bangkok' }
+};
+function trCity(city) {
+  if (!city) return '';
+  const entry = CITY_NAMES[city];
+  return entry ? entry[lang] : city;
+}
 
 function setLang(l) {
   lang = l;
@@ -167,7 +181,7 @@ async function renderCatalog() {
 
     if (cities.length) {
       const filters = document.getElementById('cityFilters');
-      filters.innerHTML = ['all', ...cities].map(c => `<span data-city="${esc(c)}" class="${c === currentCity ? 'active' : ''}">${c === 'all' ? t('all_cities') : esc(c)}</span>`).join('');
+      filters.innerHTML = ['all', ...cities].map(c => `<span data-city="${esc(c)}" class="${c === currentCity ? 'active' : ''}">${c === 'all' ? t('all_cities') : esc(trCity(c))}</span>`).join('');
       filters.querySelectorAll('span').forEach(el => {
         el.onclick = () => { currentCity = el.dataset.city; renderCatalog(); };
       });
@@ -186,7 +200,7 @@ async function renderCatalog() {
         </div>
         <div class="info">
           <h3>${esc(m.name)}</h3>
-          <div class="tag-meta">${m.city ? esc(m.city) + ' · ' : ''}${m.age ? m.age + t('years_suffix') : ''}${m.height ? (m.age ? ' · ' : '') + m.height + t('cm_suffix') : ''}</div>
+          <div class="tag-meta">${m.city ? esc(trCity(m.city)) + ' · ' : ''}${m.age ? m.age + t('years_suffix') : ''}${m.height ? (m.age ? ' · ' : '') + m.height + t('cm_suffix') : ''}</div>
         </div>
       </a>
     `).join('');
@@ -207,7 +221,7 @@ async function renderModel(slug) {
       ${model.photos && model.photos.length ? `<div class="thumb-row">${model.photos.map(p => `<img src="${p}">`).join('')}</div>` : ''}
       <div class="detail-body">
         <h1>${esc(model.name)}</h1>
-        <div class="casting-no">Casting № ${String(model.id).padStart(4, '0')}${model.city ? ' · ' + esc(model.city) : ''}${model.nationality ? ' · ' + esc(model.nationality) : ''}</div>
+        <div class="casting-no">Casting № ${String(model.id).padStart(4, '0')}${model.city ? ' · ' + esc(trCity(model.city)) : ''}${model.nationality ? ' · ' + esc(model.nationality) : ''}</div>
         <div class="spec-strip spec-strip-4">
           <div class="spec-cell"><div class="label">${t('spec_age')}</div><div class="value">${model.age || '—'}</div></div>
           <div class="spec-cell"><div class="label">${t('spec_height')}</div><div class="value">${model.height || '—'}</div></div>
@@ -217,6 +231,7 @@ async function renderModel(slug) {
         ${model.price ? `<div class="price-tag">${t('price_label')} ${formatVND(model.price)}</div>` : ''}
         ${model.bio ? `<div class="bio">${esc(model.bio)}</div>` : ''}
         ${model.services ? `<div class="services-block"><div class="services-title">${t('services_title')}</div><div class="services-list">${model.services.split('\n').filter(Boolean).map(s => `<span class="service-pill">${esc(s.trim())}</span>`).join('')}</div></div>` : ''}
+        ${model.services_extra ? `<div class="services-block"><div class="services-title">${t('services_extra_title')}</div><div class="services-list">${model.services_extra.split('\n').filter(Boolean).map(s => `<span class="service-pill service-pill-extra">${esc(s.trim())}</span>`).join('')}</div></div>` : ''}
         <a class="btn full" href="#/model/${model.slug}/book">${t('choose_model_btn')}</a>
       </div>
     `;

@@ -62,6 +62,9 @@ if (!modelColumns.includes('age')) {
 if (!modelColumns.includes('services')) {
   db.exec(`ALTER TABLE models ADD COLUMN services TEXT`);
 }
+if (!modelColumns.includes('services_extra')) {
+  db.exec(`ALTER TABLE models ADD COLUMN services_extra TEXT`);
+}
 if (!modelColumns.includes('price')) {
   db.exec(`ALTER TABLE models ADD COLUMN price TEXT`);
 }

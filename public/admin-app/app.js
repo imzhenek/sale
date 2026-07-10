@@ -116,14 +116,23 @@ function bookingRow(b) {
     </div>`;
 }
 
+function showAlert(text) {
+  if (tg && tg.showAlert) tg.showAlert(text);
+  else alert(text);
+}
+
 function bindBookingActions(container) {
   container.querySelectorAll('[data-act]').forEach(btn => {
     btn.onclick = async () => {
-      const status = { confirm: 'confirmed', decline: 'declined', done: 'done' }[btn.dataset.act];
+      const action = btn.dataset.act;
+      const status = { confirm: 'confirmed', decline: 'declined', done: 'done' }[action];
       btn.disabled = true;
       try {
         await api(`/bookings/${btn.dataset.id}/status`, { method: 'POST', body: { status } });
         tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred('success');
+        if (action === 'confirm') {
+          showAlert('Заявка подтверждена. Не забудьте связаться с клиентом — используйте кнопку «✉️ Написать клиенту» или его контакт в заявке.');
+        }
         router();
       } catch (e) {
         alert(e.message);
@@ -230,7 +239,7 @@ async function renderModels() {
 async function renderModelForm(id) {
   setBack(true, '#/models');
   const isEdit = !!id;
-  let model = { name: '', category: 'women', height: '', bust: '', weight: '', age: '', city: '', nationality: '', services: '', price: '', bio: '', status: 'active', photo_main: null, photos: [] };
+  let model = { name: '', category: 'women', height: '', bust: '', weight: '', age: '', city: '', nationality: '', services: '', services_extra: '', price: '', bio: '', status: 'active', photo_main: null, photos: [] };
 
   app.innerHTML = `<div class="detail-body"><div class="skeleton" style="height:200px;border-radius:3px;"></div></div>`;
 
@@ -268,7 +277,8 @@ async function renderModelForm(id) {
         </div>
         <div class="field"><label>Национальность</label><input id="f_nationality" type="text" value="${esc(model.nationality || '')}" placeholder="Например, Россия"></div>
         <div class="field"><label>Стоимость, VND</label><input id="f_price" type="number" step="1000" value="${model.price || ''}" placeholder="1500000"></div>
-        <div class="field"><label>Услуги</label><textarea id="f_services" rows="3" placeholder="Впишите вручную, каждую услугу с новой строки">${esc(model.services || '')}</textarea></div>
+        <div class="field"><label>Основные услуги</label><textarea id="f_services" rows="3" placeholder="Впишите вручную, каждую услугу с новой строки">${esc(model.services || '')}</textarea></div>
+        <div class="field"><label>Дополнительные услуги</label><textarea id="f_services_extra" rows="3" placeholder="Впишите вручную, каждую услугу с новой строки">${esc(model.services_extra || '')}</textarea></div>
         <div class="field"><label>О модели</label><textarea id="f_bio" rows="3">${esc(model.bio)}</textarea></div>
         <div class="field"><label>Статус</label>
           <select id="f_status">
@@ -308,6 +318,7 @@ async function renderModelForm(id) {
     fd.append('nationality', document.getElementById('f_nationality').value.trim());
     fd.append('price', document.getElementById('f_price').value.trim());
     fd.append('services', document.getElementById('f_services').value.trim());
+    fd.append('services_extra', document.getElementById('f_services_extra').value.trim());
     fd.append('bio', document.getElementById('f_bio').value.trim());
     fd.append('status', document.getElementById('f_status').value);
 
