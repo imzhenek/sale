@@ -1,0 +1,20 @@
+{
+  "name": "agency-miniapp",
+  "version": "1.0.0",
+  "description": "Telegram Mini App модельного агентства: каталог, заявки на съёмку, админка, уведомления в Telegram",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "bot-setup": "node bot-setup.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "multer": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

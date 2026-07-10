@@ -1,0 +1,312 @@
+const tg = window.Telegram ? window.Telegram.WebApp : null;
+const app = document.getElementById('app');
+
+if (tg) {
+  tg.ready();
+  tg.expand();
+  try { tg.setHeaderColor('#0b0b0c'); } catch (e) {}
+  try { tg.setBackgroundColor('#0b0b0c'); } catch (e) {}
+}
+
+async function api(path, { method = 'GET', body, isForm = false } = {}) {
+  const headers = {};
+  if (tg && tg.initData) headers['Authorization'] = 'tma ' + tg.initData;
+  let fetchBody;
+  if (body) {
+    if (isForm) fetchBody = body;
+    else { headers['Content-Type'] = 'application/json'; fetchBody = JSON.stringify(body); }
+  }
+  const res = await fetch('/api/admin' + path, { method, headers, body: fetchBody });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || data.error || 'Ошибка запроса');
+  return data;
+}
+
+function esc(s) { return (s ?? '').toString().replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+const STATUS_LABEL = {
+  new: ['Новая', 'status-new'], confirmed: ['Подтверждена', 'status-confirmed'],
+  declined: ['Отклонена', 'status-declined'], done: ['Проведена', 'status-done']
+};
+
+function setBack(show, fallback = '#/') {
+  if (!tg) return;
+  if (show) { tg.BackButton.show(); tg.BackButton.onClick(() => { window.location.hash = fallback; }); }
+  else tg.BackButton.hide();
+}
+
+function bottomNav(active) {
+  return `
+  <div class="bottom-nav">
+    <a class="nav-item ${active === 'dash' ? 'active' : ''}" href="#/">
+      <span class="ic">◈</span>Обзор
+    </a>
+    <a class="nav-item ${active === 'models' ? 'active' : ''}" href="#/models">
+      <span class="ic">◆</span>Модели
+    </a>
+    <a class="nav-item ${active === 'bookings' ? 'active' : ''}" href="#/bookings">
+      <span class="ic">✎</span>Заявки
+    </a>
+  </div>`;
+}
+
+function accessDenied(message) {
+  app.innerHTML = `
+    <div class="access-denied">
+      <div class="code">403</div>
+      <p style="color:var(--text-dim); font-family: var(--font-mono); font-size:13px;">${esc(message || 'Доступ только для сотрудников агентства')}</p>
+    </div>`;
+}
+
+// --- Dashboard ---
+async function renderDashboard() {
+  setBack(false);
+  if (tg) tg.MainButton.hide();
+  app.innerHTML = `
+    <div class="hazard-bar"></div>
+    <div class="admin-header"><div class="eyebrow" style="font-family:var(--font-mono);font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:2px;">Admin</div><h1 style="font-family:var(--font-display);text-transform:uppercase;font-size:26px;margin:4px 0 0;">NOIRFRAME</h1></div>
+    <div class="stat-row" id="stats">
+      <div class="stat-card skeleton" style="height:60px;"></div>
+      <div class="stat-card skeleton" style="height:60px;"></div>
+    </div>
+    <div class="section-title">Последние заявки</div>
+    <div id="recent"></div>
+    ${bottomNav('dash')}
+  `;
+  try {
+    const s = await api('/summary');
+    document.getElementById('stats').innerHTML = `
+      <div class="stat-card"><div class="n">${s.modelsCount}</div><div class="l">Моделей</div></div>
+      <div class="stat-card"><div class="n">${s.newBookings}</div><div class="l">Новых заявок</div></div>
+    `;
+    document.getElementById('recent').innerHTML = s.recentBookings.length ? s.recentBookings.map(bookingRow).join('') : `<div class="empty-state">Заявок пока нет</div>`;
+  } catch (e) {
+    if (e.message.includes('forbidden') || e.message.includes('администратор')) return accessDenied(e.message);
+    app.innerHTML += `<div class="empty-state">${esc(e.message)}</div>`;
+  }
+}
+
+function bookingRow(b) {
+  const [label, cls] = STATUS_LABEL[b.status] || [b.status, 'status-new'];
+  return `
+    <div class="admin-list-item" style="flex-direction:column; align-items:stretch;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="name" style="font-size:15px;">${esc(b.model_name || 'Общий запрос')}</span>
+        <span class="status-badge ${cls}">${label}</span>
+      </div>
+      <div class="sub">${esc(b.client_name)}${b.client_username ? ' · @' + esc(b.client_username) : ''}${b.client_phone ? ' · ' + esc(b.client_phone) : ''}</div>
+      <div class="sub">${esc(b.shoot_type || '')} ${b.shoot_date ? '· ' + esc(b.shoot_date) : ''}</div>
+      ${b.status === 'new' ? `
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="btn small ghost-acid" data-act="confirm" data-id="${b.id}">Подтвердить</button>
+          <button class="btn small ghost-danger" data-act="decline" data-id="${b.id}">Отклонить</button>
+        </div>` : `
+        <div style="margin-top:8px;">
+          <button class="btn small outline" data-act="done" data-id="${b.id}" ${b.status === 'done' ? 'disabled' : ''}>Отметить как проведена</button>
+        </div>`}
+    </div>`;
+}
+
+function bindBookingActions(container) {
+  container.querySelectorAll('[data-act]').forEach(btn => {
+    btn.onclick = async () => {
+      const status = { confirm: 'confirmed', decline: 'declined', done: 'done' }[btn.dataset.act];
+      btn.disabled = true;
+      try {
+        await api(`/bookings/${btn.dataset.id}/status`, { method: 'POST', body: { status } });
+        tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred('success');
+        router();
+      } catch (e) {
+        alert(e.message);
+        btn.disabled = false;
+      }
+    };
+  });
+}
+
+// --- Bookings ---
+let bookingsFilter = 'all';
+async function renderBookings() {
+  setBack(false);
+  if (tg) tg.MainButton.hide();
+  app.innerHTML = `
+    <div class="admin-header"><h1 style="font-family:var(--font-display);text-transform:uppercase;font-size:24px;margin:0;">Заявки</h1></div>
+    <div class="filter-row">
+      ${['all', 'new', 'confirmed', 'declined', 'done'].map(s => `<span data-s="${s}" class="${s === bookingsFilter ? 'active' : ''}">${{ all: 'Все', new: 'Новые', confirmed: 'Подтверждены', declined: 'Отклонены', done: 'Проведены' }[s]}</span>`).join('')}
+    </div>
+    <div id="list" style="padding: 8px 16px;">
+      <div class="skeleton" style="height:100px;border-radius:3px;"></div>
+    </div>
+    ${bottomNav('bookings')}
+  `;
+  document.querySelectorAll('.filter-row span').forEach(el => { el.onclick = () => { bookingsFilter = el.dataset.s; renderBookings(); }; });
+
+  try {
+    const { bookings } = await api(`/bookings?status=${bookingsFilter}`);
+    const list = document.getElementById('list');
+    list.innerHTML = bookings.length ? bookings.map(bookingRow).join('') : `<div class="empty-state">Нет заявок в этом статусе</div>`;
+    bindBookingActions(list);
+  } catch (e) {
+    if (e.message.includes('forbidden')) return accessDenied(e.message);
+    document.getElementById('list').innerHTML = `<div class="empty-state">${esc(e.message)}</div>`;
+  }
+}
+
+// --- Models list ---
+async function renderModels() {
+  setBack(false);
+  if (tg) tg.MainButton.hide();
+  app.innerHTML = `
+    <div class="admin-header" style="display:flex; justify-content:space-between; align-items:center;">
+      <h1 style="font-family:var(--font-display);text-transform:uppercase;font-size:24px;margin:0;">Модели</h1>
+      <a class="btn small" href="#/models/new">+ Добавить</a>
+    </div>
+    <div id="list"><div class="skeleton" style="height:70px;margin:16px;border-radius:3px;"></div></div>
+    ${bottomNav('models')}
+  `;
+  try {
+    const { models } = await api('/models');
+    const list = document.getElementById('list');
+    list.innerHTML = models.length ? models.map(m => `
+      <div class="admin-list-item">
+        <img src="${m.photo_main || 'https://placehold.co/100x140/1a1a1d/666?text=--'}">
+        <div>
+          <div class="name">${esc(m.name)}</div>
+          <div class="sub">${m.category} · ${m.status === 'active' ? 'активна' : 'скрыта'}</div>
+        </div>
+        <div class="actions">
+          <a class="btn small outline" href="#/models/${m.id}/edit">Изм.</a>
+        </div>
+      </div>
+    `).join('') : `<div class="empty-state">Моделей пока нет</div>`;
+  } catch (e) {
+    if (e.message.includes('forbidden')) return accessDenied(e.message);
+    document.getElementById('list').innerHTML = `<div class="empty-state">${esc(e.message)}</div>`;
+  }
+}
+
+// --- Model form ---
+async function renderModelForm(id) {
+  setBack(true, '#/models');
+  const isEdit = !!id;
+  let model = { name: '', category: 'women', height: '', bust: '', waist: '', hips: '', shoe_size: '', bio: '', status: 'active', photo_main: null, photos: [] };
+
+  app.innerHTML = `<div class="detail-body"><div class="skeleton" style="height:200px;border-radius:3px;"></div></div>`;
+
+  if (isEdit) {
+    try {
+      const r = await api(`/models/${id}`);
+      model = r.model;
+    } catch (e) {
+      return accessDenied(e.message);
+    }
+  }
+
+  app.innerHTML = `
+    <div class="detail-body">
+      <div class="ticket">
+        <div class="ticket-head"><span>${isEdit ? 'Редактирование' : 'Новая модель'}</span><span class="stamp">${isEdit ? '#' + id : 'NEW'}</span></div>
+        <div id="formError"></div>
+
+        <div class="field"><label>Имя</label><input id="f_name" value="${esc(model.name)}"></div>
+        <div class="field"><label>Категория</label>
+          <select id="f_category">
+            ${['women', 'men', 'kids'].map(c => `<option value="${c}" ${model.category === c ? 'selected' : ''}>${{ women: 'Женщины', men: 'Мужчины', kids: 'Дети' }[c]}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Рост, см</label><input id="f_height" type="number" value="${model.height || ''}"></div>
+          <div class="field"><label>Обувь</label><input id="f_shoe" type="number" value="${model.shoe_size || ''}"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Грудь</label><input id="f_bust" type="number" value="${model.bust || ''}"></div>
+          <div class="field"><label>Талия</label><input id="f_waist" type="number" value="${model.waist || ''}"></div>
+        </div>
+        <div class="field"><label>Бёдра</label><input id="f_hips" type="number" value="${model.hips || ''}"></div>
+        <div class="field"><label>О модели</label><textarea id="f_bio" rows="3">${esc(model.bio)}</textarea></div>
+        <div class="field"><label>Статус</label>
+          <select id="f_status">
+            <option value="active" ${model.status === 'active' ? 'selected' : ''}>Активна (видна в каталоге)</option>
+            <option value="hidden" ${model.status === 'hidden' ? 'selected' : ''}>Скрыта</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Главное фото</label>
+          ${model.photo_main ? `<img class="photo-preview" src="${model.photo_main}" style="margin-bottom:8px;">` : ''}
+          <input id="f_photo_main" type="file" accept="image/png,image/jpeg,image/webp">
+        </div>
+        <div class="field">
+          <label>Доп. фото (можно несколько)</label>
+          ${model.photos && model.photos.length ? `<div class="photo-upload-row" style="margin-bottom:8px;">${model.photos.map(p => `<img class="photo-preview" src="${p}">`).join('')}</div>` : ''}
+          <input id="f_photos" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top: 16px;">
+          <button class="btn full" id="saveBtn">${isEdit ? 'Сохранить' : 'Создать'}</button>
+        </div>
+        ${isEdit ? `<button class="btn full ghost-danger" id="deleteBtn" style="margin-top:10px;">Удалить модель</button>` : ''}
+      </div>
+    </div>
+  `;
+
+  document.getElementById('saveBtn').onclick = async () => {
+    const fd = new FormData();
+    fd.append('name', document.getElementById('f_name').value.trim());
+    fd.append('category', document.getElementById('f_category').value);
+    fd.append('height', document.getElementById('f_height').value);
+    fd.append('shoe_size', document.getElementById('f_shoe').value);
+    fd.append('bust', document.getElementById('f_bust').value);
+    fd.append('waist', document.getElementById('f_waist').value);
+    fd.append('hips', document.getElementById('f_hips').value);
+    fd.append('bio', document.getElementById('f_bio').value.trim());
+    fd.append('status', document.getElementById('f_status').value);
+
+    const mainFile = document.getElementById('f_photo_main').files[0];
+    if (mainFile) fd.append('photo_main', mainFile);
+    Array.from(document.getElementById('f_photos').files).forEach(f => fd.append('photos', f));
+
+    if (!fd.get('name')) {
+      document.getElementById('formError').innerHTML = `<div class="alert error">Укажите имя</div>`;
+      return;
+    }
+
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true; btn.textContent = 'Сохранение...';
+    try {
+      if (isEdit) await api(`/models/${id}`, { method: 'PUT', body: fd, isForm: true });
+      else await api('/models', { method: 'POST', body: fd, isForm: true });
+      window.location.hash = '#/models';
+    } catch (e) {
+      document.getElementById('formError').innerHTML = `<div class="alert error">${esc(e.message)}</div>`;
+      btn.disabled = false; btn.textContent = isEdit ? 'Сохранить' : 'Создать';
+    }
+  };
+
+  if (isEdit) {
+    document.getElementById('deleteBtn').onclick = async () => {
+      if (!confirm('Удалить модель безвозвратно?')) return;
+      try {
+        await api(`/models/${id}`, { method: 'DELETE' });
+        window.location.hash = '#/models';
+      } catch (e) { alert(e.message); }
+    };
+  }
+}
+
+function router() {
+  const hash = window.location.hash.replace(/^#/, '') || '/';
+
+  if (hash === '/') return renderDashboard();
+  if (hash === '/models') return renderModels();
+  if (hash === '/models/new') return renderModelForm(null);
+  if (hash === '/bookings') return renderBookings();
+
+  let m = hash.match(/^\/models\/(\d+)\/edit$/);
+  if (m) return renderModelForm(m[1]);
+
+  renderDashboard();
+}
+
+window.addEventListener('hashchange', router);
+router();
