@@ -100,8 +100,20 @@ router.put('/models/:id', upload.fields([{ name: 'photo_main', maxCount: 1 }, { 
 });
 
 router.post('/models/:id/delete', (req, res) => {
-  db.prepare(`DELETE FROM models WHERE id = ?`).run(req.params.id);
-  res.json({ ok: true });
+  const deleteModel = db.transaction((id) => {
+    // Отвязываем заявки от удаляемой модели, но не удаляем их —
+    // история обращений клиентов должна сохраниться.
+    db.prepare(`UPDATE bookings SET model_id = NULL WHERE model_id = ?`).run(id);
+    db.prepare(`DELETE FROM models WHERE id = ?`).run(id);
+  });
+
+  try {
+    deleteModel(req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[admin] failed to delete model', e);
+    res.status(500).json({ error: 'delete_failed', message: 'Не удалось удалить модель' });
+  }
 });
 
 // --- Bookings ---
