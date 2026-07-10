@@ -56,5 +56,8 @@ if (!modelColumns.includes('weight')) {
 if (!modelColumns.includes('city')) {
   db.exec(`ALTER TABLE models ADD COLUMN city TEXT`);
 }
+if (!modelColumns.includes('age')) {
+  db.exec(`ALTER TABLE models ADD COLUMN age INTEGER`);
+}
 
 module.exports = db;

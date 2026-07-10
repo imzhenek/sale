@@ -103,7 +103,7 @@ async function renderCatalog() {
         </div>
         <div class="info">
           <h3>${esc(m.name)}</h3>
-          <div class="tag-meta">${m.city ? esc(m.city) + ' · ' : ''}${m.height ? m.height + ' см' : ''}${m.weight ? ' · ' + m.weight + ' кг' : ''}</div>
+          <div class="tag-meta">${m.city ? esc(m.city) + ' · ' : ''}${m.age ? m.age + ' лет' : ''}${m.height ? (m.age ? ' · ' : '') + m.height + ' см' : ''}</div>
         </div>
       </a>
     `).join('');
@@ -125,7 +125,8 @@ async function renderModel(slug) {
       <div class="detail-body">
         <h1>${esc(model.name)}</h1>
         <div class="casting-no">Casting № ${String(model.id).padStart(4, '0')}${model.city ? ' · ' + esc(model.city) : ''}</div>
-        <div class="spec-strip">
+        <div class="spec-strip spec-strip-4">
+          <div class="spec-cell"><div class="label">Возраст</div><div class="value">${model.age || '—'}</div></div>
           <div class="spec-cell"><div class="label">Рост</div><div class="value">${model.height || '—'}</div></div>
           <div class="spec-cell"><div class="label">Грудь</div><div class="value">${model.bust || '—'}</div></div>
           <div class="spec-cell"><div class="label">Вес</div><div class="value">${model.weight || '—'}</div></div>

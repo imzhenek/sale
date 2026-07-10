@@ -189,7 +189,7 @@ async function renderModels() {
 async function renderModelForm(id) {
   setBack(true, '#/models');
   const isEdit = !!id;
-  let model = { name: '', category: 'women', height: '', bust: '', weight: '', city: '', bio: '', status: 'active', photo_main: null, photos: [] };
+  let model = { name: '', category: 'women', height: '', bust: '', weight: '', age: '', city: '', bio: '', status: 'active', photo_main: null, photos: [] };
 
   app.innerHTML = `<div class="detail-body"><div class="skeleton" style="height:200px;border-radius:3px;"></div></div>`;
 
@@ -202,6 +202,8 @@ async function renderModelForm(id) {
     }
   }
 
+  const CITIES = ['Нячанг', 'Дананг', 'Фукок', 'Бангкок'];
+
   app.innerHTML = `
     <div class="detail-body">
       <div class="ticket">
@@ -209,17 +211,20 @@ async function renderModelForm(id) {
         <div id="formError"></div>
 
         <div class="field"><label>Имя</label><input id="f_name" value="${esc(model.name)}"></div>
-        <div class="field"><label>Категория</label>
-          <select id="f_category">
-            ${['women', 'men', 'kids'].map(c => `<option value="${c}" ${model.category === c ? 'selected' : ''}>${{ women: 'Женщины', men: 'Мужчины', kids: 'Дети' }[c]}</option>`).join('')}
-          </select>
-        </div>
         <div class="field-row">
           <div class="field"><label>Рост, см</label><input id="f_height" type="number" value="${model.height || ''}"></div>
           <div class="field"><label>Вес, кг</label><input id="f_weight" type="number" value="${model.weight || ''}"></div>
         </div>
-        <div class="field"><label>Грудь</label><input id="f_bust" type="number" value="${model.bust || ''}"></div>
-        <div class="field"><label>Город</label><input id="f_city" type="text" value="${esc(model.city || '')}" placeholder="Москва"></div>
+        <div class="field-row">
+          <div class="field"><label>Возраст</label><input id="f_age" type="number" value="${model.age || ''}"></div>
+          <div class="field"><label>Грудь</label><input id="f_bust" type="number" value="${model.bust || ''}"></div>
+        </div>
+        <div class="field"><label>Город</label>
+          <select id="f_city">
+            <option value="">Не выбран</option>
+            ${CITIES.map(c => `<option value="${c}" ${model.city === c ? 'selected' : ''}>${c}</option>`).join('')}
+          </select>
+        </div>
         <div class="field"><label>О модели</label><textarea id="f_bio" rows="3">${esc(model.bio)}</textarea></div>
         <div class="field"><label>Статус</label>
           <select id="f_status">
@@ -250,11 +255,12 @@ async function renderModelForm(id) {
   document.getElementById('saveBtn').onclick = async () => {
     const fd = new FormData();
     fd.append('name', document.getElementById('f_name').value.trim());
-    fd.append('category', document.getElementById('f_category').value);
+    fd.append('category', 'women');
     fd.append('height', document.getElementById('f_height').value);
     fd.append('weight', document.getElementById('f_weight').value);
+    fd.append('age', document.getElementById('f_age').value);
     fd.append('bust', document.getElementById('f_bust').value);
-    fd.append('city', document.getElementById('f_city').value.trim());
+    fd.append('city', document.getElementById('f_city').value);
     fd.append('bio', document.getElementById('f_bio').value.trim());
     fd.append('status', document.getElementById('f_status').value);
 
