@@ -80,6 +80,7 @@ async function renderDashboard() {
       <div class="stat-card"><div class="n">${s.newBookings}</div><div class="l">Новых заявок</div></div>
     `;
     document.getElementById('recent').innerHTML = s.recentBookings.length ? s.recentBookings.map(bookingRow).join('') : `<div class="empty-state">Заявок пока нет</div>`;
+    bindBookingActions(document.getElementById('recent'));
   } catch (e) {
     if (e.message.includes('forbidden') || e.message.includes('администратор')) return accessDenied(e.message);
     app.innerHTML += `<div class="empty-state">${esc(e.message)}</div>`;
@@ -104,6 +105,14 @@ function bookingRow(b) {
         <div style="margin-top:8px;">
           <button class="btn small outline" data-act="done" data-id="${b.id}" ${b.status === 'done' ? 'disabled' : ''}>Отметить как проведена</button>
         </div>`}
+      <div style="margin-top:8px;">
+        <button class="btn small outline" data-msg-toggle="${b.id}">✉️ Написать клиенту</button>
+      </div>
+      <div id="compose-${b.id}" style="display:none; margin-top:8px;">
+        <textarea id="msgtext-${b.id}" rows="2" placeholder="Текст сообщения — придёт клиенту от бота" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:8px 10px; border-radius:var(--radius); font-family:var(--font-body); font-size:13px;"></textarea>
+        <div id="msgstatus-${b.id}" style="font-family:var(--font-mono); font-size:11px; margin-top:4px;"></div>
+        <button class="btn small full" style="margin-top:6px;" data-msg-send="${b.id}">Отправить</button>
+      </div>
     </div>`;
 }
 
@@ -118,6 +127,38 @@ function bindBookingActions(container) {
         router();
       } catch (e) {
         alert(e.message);
+        btn.disabled = false;
+      }
+    };
+  });
+
+  container.querySelectorAll('[data-msg-toggle]').forEach(btn => {
+    btn.onclick = () => {
+      const box = document.getElementById(`compose-${btn.dataset.msgToggle}`);
+      box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    };
+  });
+
+  container.querySelectorAll('[data-msg-send]').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.msgSend;
+      const textarea = document.getElementById(`msgtext-${id}`);
+      const statusEl = document.getElementById(`msgstatus-${id}`);
+      const text = textarea.value.trim();
+      if (!text) { statusEl.textContent = 'Введите текст'; statusEl.style.color = 'var(--accent)'; return; }
+      btn.disabled = true;
+      statusEl.textContent = 'Отправка...';
+      statusEl.style.color = 'var(--text-dim)';
+      try {
+        await api(`/bookings/${id}/message`, { method: 'POST', body: { text } });
+        statusEl.textContent = 'Отправлено ✓';
+        statusEl.style.color = 'var(--acid)';
+        textarea.value = '';
+        tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred('success');
+      } catch (e) {
+        statusEl.textContent = e.message;
+        statusEl.style.color = 'var(--accent)';
+      } finally {
         btn.disabled = false;
       }
     };
@@ -172,7 +213,7 @@ async function renderModels() {
         <img src="${m.photo_main || 'https://placehold.co/100x140/1a1a1d/666?text=--'}">
         <div>
           <div class="name">${esc(m.name)}</div>
-          <div class="sub">${m.city ? esc(m.city) + ' · ' : ''}${m.status === 'active' ? 'активна' : 'скрыта'}</div>
+          <div class="sub">${m.city ? esc(m.city) + ' · ' : ''}${m.status === 'active' ? 'Активна' : 'Неактивна'}</div>
         </div>
         <div class="actions">
           <a class="btn small outline" href="#/models/${m.id}/edit">Изм.</a>
@@ -226,13 +267,13 @@ async function renderModelForm(id) {
           </select>
         </div>
         <div class="field"><label>Национальность</label><input id="f_nationality" type="text" value="${esc(model.nationality || '')}" placeholder="Например, Россия"></div>
-        <div class="field"><label>Стоимость</label><input id="f_price" type="text" value="${esc(model.price || '')}" placeholder="Например, от 150$/час"></div>
+        <div class="field"><label>Стоимость, VND</label><input id="f_price" type="number" step="1000" value="${model.price || ''}" placeholder="1500000"></div>
         <div class="field"><label>Услуги</label><textarea id="f_services" rows="3" placeholder="Впишите вручную, каждую услугу с новой строки">${esc(model.services || '')}</textarea></div>
         <div class="field"><label>О модели</label><textarea id="f_bio" rows="3">${esc(model.bio)}</textarea></div>
         <div class="field"><label>Статус</label>
           <select id="f_status">
-            <option value="active" ${model.status === 'active' ? 'selected' : ''}>Активна (видна в каталоге)</option>
-            <option value="hidden" ${model.status === 'hidden' ? 'selected' : ''}>Скрыта</option>
+            <option value="active" ${model.status === 'active' ? 'selected' : ''}>Активна</option>
+            <option value="hidden" ${model.status === 'hidden' ? 'selected' : ''}>Неактивна</option>
           </select>
         </div>
 

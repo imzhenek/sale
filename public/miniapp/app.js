@@ -10,6 +10,90 @@ if (tg) {
 
 const tgUser = tg && tg.initDataUnsafe ? tg.initDataUnsafe.user : null;
 
+// --- i18n ---
+// Переводится только интерфейс (кнопки, подписи, статусы). Данные, которые
+// вписывает админ (имя модели, био, услуги, город) не переводятся — это
+// потребовало бы отдельных полей на двух языках в админке.
+const I18N = {
+  ru: {
+    nav_catalog: 'Каталог', nav_my: 'Мои заявки',
+    all_cities: 'Все города',
+    empty_city: 'В этом городе пока нет моделей.<br>Загляните чуть позже.',
+    catalog_load_error: 'Не удалось загрузить каталог.',
+    years_suffix: ' лет', cm_suffix: ' см',
+    model_not_found: 'Модель не найдена.',
+    spec_age: 'Возраст', spec_height: 'Рост', spec_bust: 'Грудь', spec_weight: 'Вес',
+    price_label: 'Стоимость:', services_title: 'Услуги',
+    choose_model_btn: 'Выбрать модель',
+    open_via_telegram: 'Откройте агентство через Telegram, чтобы отправить заявку.',
+    ticket_head_title: 'Заявка на съёмку',
+    field_name: 'Имя', field_name_ph: 'Как к вам обращаться',
+    field_phone: 'Телефон (по желанию)', field_phone_ph: '+7 900 000-00-00',
+    field_date: 'Дата', field_comment: 'Комментарий',
+    field_comment_ph: 'Детали проекта, бюджет, референсы...',
+    submit_btn: 'ОТПРАВИТЬ ЗАЯВКУ',
+    error_name_required: 'Укажите имя',
+    my_bookings_eyebrow: 'Статус заявок', my_bookings_title: 'Мои заявки',
+    sent_alert: 'Заявка отправлена! Мы подтвердим её в течение 24 часов.',
+    sent_alert_short: 'Заявка отправлена!',
+    no_bookings: 'Заявок пока нет — выберите модель в каталоге.',
+    open_via_telegram_bookings: 'Откройте через Telegram, чтобы увидеть свои заявки.',
+    general_request: 'Общий запрос', desired_date: 'Желаемая дата:',
+    status_new: 'Ожидает подтверждения', status_confirmed: 'Подтверждена',
+    status_declined: 'Отклонена', status_done: 'Съёмка проведена',
+    generic_error: 'Ошибка запроса'
+  },
+  en: {
+    nav_catalog: 'Catalog', nav_my: 'My requests',
+    all_cities: 'All cities',
+    empty_city: 'No models in this city yet.<br>Check back soon.',
+    catalog_load_error: 'Failed to load catalog.',
+    years_suffix: ' y.o.', cm_suffix: ' cm',
+    model_not_found: 'Model not found.',
+    spec_age: 'Age', spec_height: 'Height', spec_bust: 'Bust', spec_weight: 'Weight',
+    price_label: 'Price:', services_title: 'Services',
+    choose_model_btn: 'Choose model',
+    open_via_telegram: 'Open the agency through Telegram to send a request.',
+    ticket_head_title: 'Booking request',
+    field_name: 'Name', field_name_ph: 'How should we address you',
+    field_phone: 'Phone (optional)', field_phone_ph: '+1 555 000-00-00',
+    field_date: 'Date', field_comment: 'Comment',
+    field_comment_ph: 'Project details, budget, references...',
+    submit_btn: 'SUBMIT REQUEST',
+    error_name_required: 'Please enter your name',
+    my_bookings_eyebrow: 'Request status', my_bookings_title: 'My requests',
+    sent_alert: 'Request sent! We will confirm it within 24 hours.',
+    sent_alert_short: 'Request sent!',
+    no_bookings: 'No requests yet — choose a model from the catalog.',
+    open_via_telegram_bookings: 'Open via Telegram to see your requests.',
+    general_request: 'General request', desired_date: 'Preferred date:',
+    status_new: 'Pending confirmation', status_confirmed: 'Confirmed',
+    status_declined: 'Declined', status_done: 'Shoot completed',
+    generic_error: 'Request error'
+  }
+};
+
+let lang = localStorage.getItem('loveinasia_lang') || 'ru';
+function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.ru[key] || key; }
+
+function setLang(l) {
+  lang = l;
+  localStorage.setItem('loveinasia_lang', l);
+  updateLangButton();
+  router();
+}
+
+function updateLangButton() {
+  const btn = document.getElementById('langBtn');
+  if (btn) btn.textContent = lang === 'ru' ? 'EN' : 'RU';
+}
+
+function statusLabel(status) {
+  const map = { new: ['status_new', 'status-new'], confirmed: ['status_confirmed', 'status-confirmed'], declined: ['status_declined', 'status-declined'], done: ['status_done', 'status-done'] };
+  const entry = map[status] || ['status_new', 'status-new'];
+  return [t(entry[0]), entry[1]];
+}
+
 async function api(path, { method = 'GET', body, isForm = false } = {}) {
   const headers = {};
   if (tg && tg.initData) headers['Authorization'] = 'tma ' + tg.initData;
@@ -20,27 +104,26 @@ async function api(path, { method = 'GET', body, isForm = false } = {}) {
   }
   const res = await fetch('/api' + path, { method, headers, body: fetchBody });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || data.error || 'Ошибка запроса');
+  if (!res.ok) throw new Error(data.message || data.error || t('generic_error'));
   return data;
 }
 
-const STATUS_LABEL = {
-  new: ['Ожидает подтверждения', 'status-new'],
-  confirmed: ['Подтверждена', 'status-confirmed'],
-  declined: ['Отклонена', 'status-declined'],
-  done: ['Съёмка проведена', 'status-done']
-};
-
 function esc(s) { return (s ?? '').toString().replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+function formatVND(n) {
+  const num = Math.round(Number(n));
+  if (!num) return '';
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' VND';
+}
 
 function bottomNav(active) {
   return `
   <div class="bottom-nav">
     <a class="nav-item ${active === 'catalog' ? 'active' : ''}" href="#/">
-      <span class="ic">◆</span>Каталог
+      <span class="ic">◆</span>${t('nav_catalog')}
     </a>
     <a class="nav-item ${active === 'my' ? 'active' : ''}" href="#/my-bookings">
-      <span class="ic">✎</span>Мои заявки
+      <span class="ic">✎</span>${t('nav_my')}
     </a>
   </div>`;
 }
@@ -84,7 +167,7 @@ async function renderCatalog() {
 
     if (cities.length) {
       const filters = document.getElementById('cityFilters');
-      filters.innerHTML = ['all', ...cities].map(c => `<span data-city="${esc(c)}" class="${c === currentCity ? 'active' : ''}">${c === 'all' ? 'Все города' : esc(c)}</span>`).join('');
+      filters.innerHTML = ['all', ...cities].map(c => `<span data-city="${esc(c)}" class="${c === currentCity ? 'active' : ''}">${c === 'all' ? t('all_cities') : esc(c)}</span>`).join('');
       filters.querySelectorAll('span').forEach(el => {
         el.onclick = () => { currentCity = el.dataset.city; renderCatalog(); };
       });
@@ -92,7 +175,7 @@ async function renderCatalog() {
 
     const grid = document.getElementById('grid');
     if (!models.length) {
-      grid.outerHTML = `<div class="empty-state">В этом городе пока нет моделей.<br>Загляните чуть позже.</div>`;
+      grid.outerHTML = `<div class="empty-state">${t('empty_city')}</div>`;
       return;
     }
     grid.innerHTML = models.map(m => `
@@ -103,12 +186,12 @@ async function renderCatalog() {
         </div>
         <div class="info">
           <h3>${esc(m.name)}</h3>
-          <div class="tag-meta">${m.city ? esc(m.city) + ' · ' : ''}${m.age ? m.age + ' лет' : ''}${m.height ? (m.age ? ' · ' : '') + m.height + ' см' : ''}</div>
+          <div class="tag-meta">${m.city ? esc(m.city) + ' · ' : ''}${m.age ? m.age + t('years_suffix') : ''}${m.height ? (m.age ? ' · ' : '') + m.height + t('cm_suffix') : ''}</div>
         </div>
       </a>
     `).join('');
   } catch (e) {
-    document.getElementById('grid').outerHTML = `<div class="empty-state">Не удалось загрузить каталог.<br>${esc(e.message)}</div>`;
+    document.getElementById('grid').outerHTML = `<div class="empty-state">${t('catalog_load_error')}<br>${esc(e.message)}</div>`;
   }
 }
 
@@ -126,26 +209,26 @@ async function renderModel(slug) {
         <h1>${esc(model.name)}</h1>
         <div class="casting-no">Casting № ${String(model.id).padStart(4, '0')}${model.city ? ' · ' + esc(model.city) : ''}${model.nationality ? ' · ' + esc(model.nationality) : ''}</div>
         <div class="spec-strip spec-strip-4">
-          <div class="spec-cell"><div class="label">Возраст</div><div class="value">${model.age || '—'}</div></div>
-          <div class="spec-cell"><div class="label">Рост</div><div class="value">${model.height || '—'}</div></div>
-          <div class="spec-cell"><div class="label">Грудь</div><div class="value">${model.bust || '—'}</div></div>
-          <div class="spec-cell"><div class="label">Вес</div><div class="value">${model.weight || '—'}</div></div>
+          <div class="spec-cell"><div class="label">${t('spec_age')}</div><div class="value">${model.age || '—'}</div></div>
+          <div class="spec-cell"><div class="label">${t('spec_height')}</div><div class="value">${model.height || '—'}</div></div>
+          <div class="spec-cell"><div class="label">${t('spec_bust')}</div><div class="value">${model.bust || '—'}</div></div>
+          <div class="spec-cell"><div class="label">${t('spec_weight')}</div><div class="value">${model.weight || '—'}</div></div>
         </div>
-        ${model.price ? `<div class="price-tag">Стоимость: ${esc(model.price)}</div>` : ''}
+        ${model.price ? `<div class="price-tag">${t('price_label')} ${formatVND(model.price)}</div>` : ''}
         ${model.bio ? `<div class="bio">${esc(model.bio)}</div>` : ''}
-        ${model.services ? `<div class="services-block"><div class="services-title">Услуги</div><div class="services-list">${model.services.split('\n').filter(Boolean).map(s => `<span class="service-pill">${esc(s.trim())}</span>`).join('')}</div></div>` : ''}
-        <a class="btn full" href="#/model/${model.slug}/book">Выбрать модель</a>
+        ${model.services ? `<div class="services-block"><div class="services-title">${t('services_title')}</div><div class="services-list">${model.services.split('\n').filter(Boolean).map(s => `<span class="service-pill">${esc(s.trim())}</span>`).join('')}</div></div>` : ''}
+        <a class="btn full" href="#/model/${model.slug}/book">${t('choose_model_btn')}</a>
       </div>
     `;
   } catch (e) {
-    app.innerHTML = `<div class="empty-state">Модель не найдена.</div>`;
+    app.innerHTML = `<div class="empty-state">${t('model_not_found')}</div>`;
   }
 }
 
 async function renderBooking(slug) {
   setBack(true, `#/model/${slug}`);
   if (!tg || !tg.initData) {
-    app.innerHTML = `<div class="empty-state">Откройте агентство через Telegram, чтобы отправить заявку.</div>`;
+    app.innerHTML = `<div class="empty-state">${t('open_via_telegram')}</div>`;
     return;
   }
 
@@ -154,30 +237,30 @@ async function renderBooking(slug) {
   app.innerHTML = `
     <div class="detail-body">
       <div class="ticket">
-        <div class="ticket-head"><span>Заявка на съёмку</span><span class="stamp">Booking</span></div>
+        <div class="ticket-head"><span>${t('ticket_head_title')}</span><span class="stamp">Booking</span></div>
         <div id="bookingError"></div>
         <div class="field">
-          <label>Имя</label>
-          <input id="f_name" type="text" value="${esc(first)}" placeholder="Как к вам обращаться">
+          <label>${t('field_name')}</label>
+          <input id="f_name" type="text" value="${esc(first)}" placeholder="${t('field_name_ph')}">
         </div>
         <div class="field">
-          <label>Телефон (по желанию)</label>
-          <input id="f_phone" type="tel" placeholder="+7 900 000-00-00">
+          <label>${t('field_phone')}</label>
+          <input id="f_phone" type="tel" placeholder="${t('field_phone_ph')}">
         </div>
         <div class="field">
-          <label>Дата</label>
+          <label>${t('field_date')}</label>
           <input id="f_date" type="date">
         </div>
         <div class="field">
-          <label>Комментарий</label>
-          <textarea id="f_comment" rows="3" placeholder="Детали проекта, бюджет, референсы..."></textarea>
+          <label>${t('field_comment')}</label>
+          <textarea id="f_comment" rows="3" placeholder="${t('field_comment_ph')}"></textarea>
         </div>
       </div>
     </div>
   `;
 
   if (tg) {
-    tg.MainButton.setText('ОТПРАВИТЬ ЗАЯВКУ');
+    tg.MainButton.setText(t('submit_btn'));
     tg.MainButton.show();
     tg.MainButton.offClick(submit);
     tg.MainButton.onClick(submit);
@@ -186,7 +269,7 @@ async function renderBooking(slug) {
   async function submit() {
     const client_name = document.getElementById('f_name').value.trim();
     if (!client_name) {
-      document.getElementById('bookingError').innerHTML = `<div class="alert error">Укажите имя</div>`;
+      document.getElementById('bookingError').innerHTML = `<div class="alert error">${t('error_name_required')}</div>`;
       return;
     }
     tg.MainButton.showProgress(true);
@@ -217,14 +300,14 @@ async function renderMyBookings(justSent) {
   if (tg) tg.MainButton.hide();
 
   if (!tg || !tg.initData) {
-    app.innerHTML = `<div class="empty-state">Откройте через Telegram, чтобы увидеть свои заявки.</div>${bottomNav('my')}`;
+    app.innerHTML = `<div class="empty-state">${t('open_via_telegram_bookings')}</div>${bottomNav('my')}`;
     return;
   }
 
   app.innerHTML = `
-    <div class="topbar"><div class="eyebrow">Статус заявок</div><h1>Мои заявки</h1></div>
+    <div class="topbar"><div class="eyebrow">${t('my_bookings_eyebrow')}</div><h1>${t('my_bookings_title')}</h1></div>
     <div class="detail-body" id="list">
-      ${justSent ? `<div class="alert success">Заявка отправлена! Мы подтвердим её в течение 24 часов.</div>` : ''}
+      ${justSent ? `<div class="alert success">${t('sent_alert')}</div>` : ''}
       <div class="skeleton" style="height:80px;border-radius:3px;margin-bottom:10px;"></div>
     </div>
     ${bottomNav('my')}
@@ -234,19 +317,19 @@ async function renderMyBookings(justSent) {
     const { bookings } = await api('/my-bookings');
     const list = document.getElementById('list');
     if (!bookings.length) {
-      list.innerHTML = (justSent ? `<div class="alert success">Заявка отправлена!</div>` : '') + `<div class="empty-state">Заявок пока нет — выберите модель в каталоге.</div>`;
+      list.innerHTML = (justSent ? `<div class="alert success">${t('sent_alert_short')}</div>` : '') + `<div class="empty-state">${t('no_bookings')}</div>`;
       return;
     }
-    list.innerHTML = (justSent ? `<div class="alert success">Заявка отправлена! Мы подтвердим её в течение 24 часов.</div>` : '') +
+    list.innerHTML = (justSent ? `<div class="alert success">${t('sent_alert')}</div>` : '') +
       bookings.map(b => {
-        const [label, cls] = STATUS_LABEL[b.status] || [b.status, 'status-new'];
+        const [label, cls] = statusLabel(b.status);
         return `
         <div class="booking-card">
           <div class="row-top">
-            <div class="model">${esc(b.model_name || 'Общий запрос')}</div>
+            <div class="model">${esc(b.model_name || t('general_request'))}</div>
             <span class="status-badge ${cls}">${label}</span>
           </div>
-          <div class="meta">${b.shoot_date ? 'Желаемая дата: ' + b.shoot_date : ''}</div>
+          <div class="meta">${b.shoot_date ? t('desired_date') + ' ' + b.shoot_date : ''}</div>
         </div>`;
       }).join('');
   } catch (e) {
@@ -270,6 +353,9 @@ function router() {
 
   renderCatalog();
 }
+
+document.getElementById('langBtn').onclick = () => setLang(lang === 'ru' ? 'en' : 'ru');
+updateLangButton();
 
 window.addEventListener('hashchange', router);
 router();

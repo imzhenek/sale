@@ -179,6 +179,15 @@ button, input, textarea, select{ font-family: inherit; }
 .access-denied{ text-align:center; padding: 80px 20px; }
 .access-denied .code{ font-family: var(--font-display); font-size:60px; color: var(--accent); }
 
+.lang-toggle{ position: fixed; top: 14px; right: 14px; z-index: 100; }
+.lang-toggle button{
+  font-family: var(--font-mono); font-size: 11px; font-weight:700; letter-spacing: 0.5px;
+  background: rgba(11,11,12,0.85); backdrop-filter: blur(6px);
+  color: var(--text); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 6px 10px; cursor: pointer;
+}
+.lang-toggle button:active{ border-color: var(--accent); color: var(--accent); }
+
 .section-title{ font-family: var(--font-mono); font-size: 11px; text-transform:uppercase; letter-spacing: 1px; color: var(--text-dim); padding: 16px 16px 6px; }
 
 .photo-upload-row{ display:flex; gap:10px; align-items:center; }

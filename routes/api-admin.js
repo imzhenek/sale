@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const db = require('../db');
 const { requireTelegramAuth, requireAdmin } = require('../middleware/telegram-auth');
-const { updateNotificationMessage } = require('../telegram');
+const { updateNotificationMessage, sendMessage } = require('../telegram');
 
 const router = express.Router();
 
@@ -129,6 +129,22 @@ router.post('/bookings/:id/status', async (req, res) => {
   }
 
   res.json({ ok: true });
+});
+
+router.post('/bookings/:id/message', async (req, res) => {
+  const { text } = req.body;
+  if (!text || !text.trim()) return res.status(400).json({ error: 'validation', message: 'Введите текст сообщения' });
+
+  const booking = db.prepare(`SELECT * FROM bookings WHERE id = ?`).get(req.params.id);
+  if (!booking) return res.status(404).json({ error: 'not_found' });
+
+  try {
+    await sendMessage(booking.client_telegram_id, `✉️ Сообщение от агентства:\n\n${text.trim()}`);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[admin] failed to message client', e);
+    res.status(502).json({ error: 'telegram_failed', message: 'Не удалось отправить сообщение. Возможно, клиент ещё не писал боту.' });
+  }
 });
 
 module.exports = router;
