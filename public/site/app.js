@@ -200,10 +200,7 @@ async function renderModel(slug) {
               <div class="ticket-head"><span>Заявка</span><span class="stamp">Booking</span></div>
               <div id="bookingMsg"></div>
               <form id="bookingForm">
-                <div class="field-row">
-                  <div class="field"><label>Имя</label><input id="f_name" type="text" required></div>
-                  <div class="field"><label>Телефон</label><input id="f_phone" type="tel" required placeholder="+7 900 000-00-00"></div>
-                </div>
+                <div class="field"><label>Имя</label><input id="f_name" type="text" required></div>
                 <div class="field"><label>Telegram / доп. контакт</label><input id="f_contact" type="text" placeholder="@username"></div>
                 <div class="field"><label>Желаемая дата</label><input id="f_date" type="date"></div>
                 <div class="field"><label>Комментарий</label><textarea id="f_comment" rows="3" placeholder="Детали, бюджет, референсы..."></textarea></div>
@@ -230,9 +227,8 @@ async function renderModel(slug) {
     const btn = document.getElementById('submitBtn');
     const msg = document.getElementById('bookingMsg');
     const client_name = document.getElementById('f_name').value.trim();
-    const client_phone = document.getElementById('f_phone').value.trim();
-    if (!client_name || !client_phone) {
-      msg.innerHTML = `<div class="alert error">Укажите имя и телефон</div>`;
+    if (!client_name) {
+      msg.innerHTML = `<div class="alert error">Укажите имя</div>`;
       return;
     }
     btn.disabled = true; btn.textContent = 'Отправка...';
@@ -242,7 +238,6 @@ async function renderModel(slug) {
         body: {
           slug,
           client_name,
-          client_phone,
           client_contact: document.getElementById('f_contact').value.trim(),
           shoot_date: document.getElementById('f_date').value,
           comment: document.getElementById('f_comment').value.trim()

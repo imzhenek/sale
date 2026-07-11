@@ -4,13 +4,13 @@ const { sendBookingNotification } = require('../telegram');
 
 const router = express.Router();
 
-// Заявки с сайта не привязаны к Telegram ID клиента, поэтому телефон
-// обязателен — это единственный способ агентству с ним связаться.
+// Заявки с сайта не привязаны к Telegram ID клиента — контакт для связи
+// необязателен (телефон/Telegram), но если оставлен, попадёт в уведомление.
 router.post('/bookings', async (req, res) => {
   const { slug, client_name, client_phone, client_contact, shoot_date, comment } = req.body;
 
-  if (!client_name || !client_phone) {
-    return res.status(400).json({ error: 'validation', message: 'Укажите имя и телефон' });
+  if (!client_name) {
+    return res.status(400).json({ error: 'validation', message: 'Укажите имя' });
   }
 
   const model = slug ? db.prepare(`SELECT * FROM models WHERE slug = ?`).get(slug) : null;
@@ -22,7 +22,7 @@ router.post('/bookings', async (req, res) => {
   const info = db.prepare(`
     INSERT INTO bookings (model_id, client_telegram_id, client_name, client_phone, client_contact, shoot_date, comment, source)
     VALUES (?, 'website', ?, ?, ?, ?, ?, 'website')
-  `).run(model ? model.id : null, client_name, client_phone, client_contact || null, shoot_date || null, comment || null);
+  `).run(model ? model.id : null, client_name, client_phone || null, client_contact || null, shoot_date || null, comment || null);
 
   const booking = db.prepare(`SELECT * FROM bookings WHERE id = ?`).get(info.lastInsertRowid);
 
