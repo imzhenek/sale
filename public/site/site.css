@@ -8,7 +8,7 @@ body:has(.site-page-body) #app{ padding-bottom: 0; }
   border-bottom: 1px solid var(--line);
 }
 .site-header .site-container{
-  display:flex; align-items:center; justify-content:space-between;
+  display:flex; align-items:center; justify-content:space-between; flex-wrap: wrap; gap: 10px;
   padding-top: 16px; padding-bottom: 16px;
 }
 .site-logo{

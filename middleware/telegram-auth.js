@@ -1,6 +1,12 @@
 const { validateInitData } = require('../utils/telegram-auth');
+const db = require('../db');
 
 function getAdminIds() {
+  const fromDb = db.prepare(`SELECT telegram_id FROM admins`).all().map(r => r.telegram_id);
+  if (fromDb.length) return fromDb;
+
+  // Аварийный fallback: если таблица админов почему-то пуста (например, свежая
+  // база без миграции), не остаёмся без доступа — используем переменную окружения.
   return (process.env.ADMIN_TELEGRAM_IDS || '')
     .split(',')
     .map(s => s.trim())

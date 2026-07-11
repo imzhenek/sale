@@ -11,13 +11,13 @@ router.get('/models', (req, res) => {
   const category = req.query.category || 'all';
   const city = req.query.city || 'all';
 
-  const conditions = [`status = 'active'`];
+  const conditions = [`status IN ('active', 'coming_soon')`];
   const args = [];
   if (category !== 'all') { conditions.push(`category = ?`); args.push(category); }
   if (city !== 'all') { conditions.push(`city = ?`); args.push(city); }
 
   const models = db.prepare(`
-    SELECT * FROM models WHERE ${conditions.join(' AND ')} ORDER BY sort_order, id DESC
+    SELECT * FROM models WHERE ${conditions.join(' AND ')} ORDER BY featured DESC, sort_order, id DESC
   `).all(...args);
   res.json({ models });
 });
@@ -25,13 +25,13 @@ router.get('/models', (req, res) => {
 // Список городов, в которых есть активные модели — для построения фильтра
 router.get('/cities', (req, res) => {
   const rows = db.prepare(`
-    SELECT DISTINCT city FROM models WHERE status = 'active' AND city IS NOT NULL AND city != '' ORDER BY city
+    SELECT DISTINCT city FROM models WHERE status IN ('active', 'coming_soon') AND city IS NOT NULL AND city != '' ORDER BY city
   `).all();
   res.json({ cities: rows.map(r => r.city) });
 });
 
 router.get('/models/:slug', (req, res) => {
-  const model = db.prepare(`SELECT * FROM models WHERE slug = ? AND status = 'active'`).get(req.params.slug);
+  const model = db.prepare(`SELECT * FROM models WHERE slug = ? AND status IN ('active', 'coming_soon')`).get(req.params.slug);
   if (!model) return res.status(404).json({ error: 'not_found' });
   model.photos = JSON.parse(model.photos_json || '[]');
   res.json({ model });
@@ -48,6 +48,10 @@ router.post('/bookings', async (req, res) => {
   }
 
   const model = slug ? db.prepare(`SELECT * FROM models WHERE slug = ?`).get(slug) : null;
+
+  if (model && model.status === 'coming_soon') {
+    return res.status(400).json({ error: 'not_bookable', message: 'Эта модель пока недоступна для записи' });
+  }
 
   // Защита от дублей: если клиент уже отправил такую же заявку (та же модель)
   // за последние 30 секунд, не создаём вторую — возвращаем уже созданную.

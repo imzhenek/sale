@@ -15,6 +15,10 @@ router.post('/bookings', async (req, res) => {
 
   const model = slug ? db.prepare(`SELECT * FROM models WHERE slug = ?`).get(slug) : null;
 
+  if (model && model.status === 'coming_soon') {
+    return res.status(400).json({ error: 'not_bookable', message: 'Эта модель пока недоступна для записи' });
+  }
+
   const info = db.prepare(`
     INSERT INTO bookings (model_id, client_telegram_id, client_name, client_phone, client_contact, shoot_date, comment, source)
     VALUES (?, 'website', ?, ?, ?, ?, ?, 'website')

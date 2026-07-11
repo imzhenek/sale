@@ -60,7 +60,7 @@ router.get('/models/:id', (req, res) => {
 });
 
 router.post('/models', upload.fields([{ name: 'photo_main', maxCount: 1 }, { name: 'photos', maxCount: 8 }]), (req, res) => {
-  const { name, category, height, bust, weight, age, city, nationality, services, services_extra, price, bio, status } = req.body;
+  const { name, category, height, bust, weight, age, city, nationality, services, services_extra, price, bio, status, featured } = req.body;
   if (!name) return res.status(400).json({ error: 'validation', message: 'Укажите имя' });
 
   const slugBase = slugify(name);
@@ -71,9 +71,9 @@ router.post('/models', upload.fields([{ name: 'photo_main', maxCount: 1 }, { nam
   const photos = (req.files['photos'] || []).map(f => `/uploads/${f.filename}`);
 
   const info = db.prepare(`
-    INSERT INTO models (slug, name, category, height, bust, weight, age, city, nationality, services, services_extra, price, bio, photo_main, photos_json, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(slug, name, category || 'women', height || null, bust || null, weight || null, age || null, city || null, nationality || null, services || null, services_extra || null, price || null, bio || null, photoMain, JSON.stringify(photos), status || 'active');
+    INSERT INTO models (slug, name, category, height, bust, weight, age, city, nationality, services, services_extra, price, bio, photo_main, photos_json, status, featured)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(slug, name, category || 'women', height || null, bust || null, weight || null, age || null, city || null, nationality || null, services || null, services_extra || null, price || null, bio || null, photoMain, JSON.stringify(photos), status || 'active', featured === '1' ? 1 : 0);
 
   res.json({ id: info.lastInsertRowid, slug });
 });
@@ -82,7 +82,7 @@ router.put('/models/:id', upload.fields([{ name: 'photo_main', maxCount: 1 }, { 
   const model = db.prepare(`SELECT * FROM models WHERE id = ?`).get(req.params.id);
   if (!model) return res.status(404).json({ error: 'not_found' });
 
-  const { name, category, height, bust, weight, age, city, nationality, services, services_extra, price, bio, status } = req.body;
+  const { name, category, height, bust, weight, age, city, nationality, services, services_extra, price, bio, status, featured } = req.body;
   let photoMain = model.photo_main;
   if (req.files['photo_main']) photoMain = `/uploads/${req.files['photo_main'][0].filename}`;
 
@@ -92,9 +92,9 @@ router.put('/models/:id', upload.fields([{ name: 'photo_main', maxCount: 1 }, { 
   }
 
   db.prepare(`
-    UPDATE models SET name=?, category=?, height=?, bust=?, weight=?, age=?, city=?, nationality=?, services=?, services_extra=?, price=?, bio=?, photo_main=?, photos_json=?, status=?
+    UPDATE models SET name=?, category=?, height=?, bust=?, weight=?, age=?, city=?, nationality=?, services=?, services_extra=?, price=?, bio=?, photo_main=?, photos_json=?, status=?, featured=?
     WHERE id = ?
-  `).run(name, category || 'women', height || null, bust || null, weight || null, age || null, city || null, nationality || null, services || null, services_extra || null, price || null, bio || null, photoMain, JSON.stringify(photos), status || 'active', req.params.id);
+  `).run(name, category || 'women', height || null, bust || null, weight || null, age || null, city || null, nationality || null, services || null, services_extra || null, price || null, bio || null, photoMain, JSON.stringify(photos), status || 'active', featured === '1' ? 1 : 0, req.params.id);
 
   res.json({ ok: true });
 });
@@ -157,6 +157,45 @@ router.post('/bookings/:id/message', async (req, res) => {
     console.error('[admin] failed to message client', e);
     res.status(502).json({ error: 'telegram_failed', message: 'Не удалось отправить сообщение. Возможно, клиент ещё не писал боту.' });
   }
+});
+
+// --- Сотрудники (доступ к админке) ---
+router.get('/admins', (req, res) => {
+  const admins = db.prepare(`SELECT * FROM admins ORDER BY added_at`).all();
+  res.json({ admins, currentAdminId: String(req.tgUser.id) });
+});
+
+router.post('/admins', (req, res) => {
+  const { telegram_id, name } = req.body;
+  const cleanId = (telegram_id || '').toString().trim().replace(/[^0-9]/g, '');
+  if (!cleanId) return res.status(400).json({ error: 'validation', message: 'Укажите корректный Telegram ID (только цифры)' });
+
+  try {
+    db.prepare(`INSERT INTO admins (telegram_id, name) VALUES (?, ?)`).run(cleanId, (name || '').trim() || null);
+    res.json({ ok: true });
+  } catch (e) {
+    if (String(e.message).includes('UNIQUE')) {
+      return res.status(400).json({ error: 'duplicate', message: 'Этот Telegram ID уже есть в списке сотрудников' });
+    }
+    console.error('[admin] failed to add admin', e);
+    res.status(500).json({ error: 'server_error', message: 'Не удалось добавить сотрудника' });
+  }
+});
+
+router.post('/admins/:id/delete', (req, res) => {
+  const target = db.prepare(`SELECT * FROM admins WHERE id = ?`).get(req.params.id);
+  if (!target) return res.status(404).json({ error: 'not_found' });
+
+  const totalAdmins = db.prepare(`SELECT COUNT(*) c FROM admins`).get().c;
+  if (totalAdmins <= 1) {
+    return res.status(400).json({ error: 'last_admin', message: 'Нельзя удалить последнего администратора — доступ к админке будет потерян' });
+  }
+  if (target.telegram_id === String(req.tgUser.id)) {
+    return res.status(400).json({ error: 'self_delete', message: 'Нельзя удалить самого себя' });
+  }
+
+  db.prepare(`DELETE FROM admins WHERE id = ?`).run(req.params.id);
+  res.json({ ok: true });
 });
 
 module.exports = router;

@@ -18,6 +18,52 @@ function formatVND(n) {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' VND';
 }
 
+function openLightbox(photos, startIndex) {
+  if (!photos || !photos.length) return;
+  let idx = startIndex || 0;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'lightbox-overlay';
+  overlay.innerHTML = `
+    <button class="lightbox-close" type="button">✕</button>
+    ${photos.length > 1 ? `<button class="lightbox-nav lightbox-prev" type="button">‹</button><button class="lightbox-nav lightbox-next" type="button">›</button>` : ''}
+    <img class="lightbox-img" src="${photos[idx]}">
+    ${photos.length > 1 ? `<div class="lightbox-counter">${idx + 1} / ${photos.length}</div>` : ''}
+  `;
+  document.body.appendChild(overlay);
+
+  function update() {
+    overlay.querySelector('.lightbox-img').src = photos[idx];
+    const counter = overlay.querySelector('.lightbox-counter');
+    if (counter) counter.textContent = `${idx + 1} / ${photos.length}`;
+  }
+  function close() { overlay.remove(); document.removeEventListener('keydown', onKey); }
+  function prev() { idx = (idx - 1 + photos.length) % photos.length; update(); }
+  function next() { idx = (idx + 1) % photos.length; update(); }
+  function onKey(e) {
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowLeft') prev();
+    if (e.key === 'ArrowRight') next();
+  }
+
+  overlay.querySelector('.lightbox-close').onclick = close;
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  const prevBtn = overlay.querySelector('.lightbox-prev');
+  const nextBtn = overlay.querySelector('.lightbox-next');
+  if (prevBtn) prevBtn.onclick = (e) => { e.stopPropagation(); prev(); };
+  if (nextBtn) nextBtn.onclick = (e) => { e.stopPropagation(); next(); };
+  document.addEventListener('keydown', onKey);
+
+  let touchStartX = null;
+  overlay.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+  overlay.addEventListener('touchend', e => {
+    if (touchStartX === null || photos.length < 2) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 50) { dx > 0 ? prev() : next(); }
+    touchStartX = null;
+  });
+}
+
 function header() {
   return `
   <div class="hazard-bar"></div>
@@ -120,16 +166,20 @@ async function renderModel(slug) {
     return;
   }
 
+  const hasMain = !!model.photo_main;
+  const allPhotos = [model.photo_main, ...(model.photos || [])].filter(Boolean);
+  const thumbOffset = hasMain ? 1 : 0;
+
   app.innerHTML = `
     <div class="site-page-body">
       ${header()}
       <div class="site-container">
         <div class="site-model-detail">
           <div>
-            <div class="detail-photo">
+            <div class="detail-photo" id="mainPhoto" style="cursor:pointer;">
               <img src="${model.photo_main || 'https://placehold.co/600x800/1a1a1d/666?text=NO+PHOTO'}">
             </div>
-            ${model.photos && model.photos.length ? `<div class="thumb-row" style="padding-left:0;">${model.photos.map(p => `<img src="${p}">`).join('')}</div>` : ''}
+            ${model.photos && model.photos.length ? `<div class="thumb-row" style="padding-left:0;">${model.photos.map((p, i) => `<img src="${p}" data-idx="${i + thumbOffset}" style="cursor:pointer;">`).join('')}</div>` : ''}
           </div>
           <div class="detail-body" style="padding:0;">
             <h1>${esc(model.name)}</h1>
@@ -166,6 +216,14 @@ async function renderModel(slug) {
       ${footer()}
     </div>
   `;
+
+  if (allPhotos.length) {
+    const mainPhotoEl = document.getElementById('mainPhoto');
+    if (mainPhotoEl) mainPhotoEl.onclick = () => openLightbox(allPhotos, 0);
+    document.querySelectorAll('.thumb-row img').forEach(img => {
+      img.onclick = () => openLightbox(allPhotos, Number(img.dataset.idx));
+    });
+  }
 
   document.getElementById('bookingForm').onsubmit = async (e) => {
     e.preventDefault();

@@ -36,7 +36,9 @@ async function handleMessage(message) {
   if (text.startsWith('/admin')) {
     const adminIds = getAdminIds();
     if (!adminIds.includes(String(message.from.id))) {
-      await sendMessage(chatId, 'Эта команда доступна только сотрудникам агентства.');
+      await sendMessage(chatId,
+        `У вас нет доступа к админ-панели.\n\nВаш Telegram ID: <code>${message.from.id}</code>\n\nПерешлите это сообщение (или просто этот ID) администратору агентства — он сможет открыть вам доступ через раздел «Сотрудники» в админке.`
+      );
       return;
     }
     await sendMessage(chatId,
@@ -50,7 +52,20 @@ async function handleCallback(cq) {
   if (!cq.data) return;
   const [action, bookingIdRaw] = cq.data.split(':');
   const bookingId = Number(bookingIdRaw);
-  if (!bookingId || !['confirm', 'decline'].includes(action)) return;
+  if (!bookingId) return;
+
+  if (action === 'contact_info') {
+    const booking = db.prepare(`SELECT * FROM bookings WHERE id = ?`).get(bookingId);
+    if (!booking) return;
+    const parts = [];
+    if (booking.client_phone) parts.push(`Тел: ${booking.client_phone}`);
+    if (booking.client_contact) parts.push(`Контакт: ${booking.client_contact}`);
+    parts.push('Написать через бота можно в админке, кнопкой «Написать клиенту».');
+    await answerCallbackQuery(cq.id, parts.join('\n').slice(0, 200), true);
+    return;
+  }
+
+  if (!['confirm', 'decline'].includes(action)) return;
 
   const booking = db.prepare(`SELECT * FROM bookings WHERE id = ?`).get(bookingId);
   if (!booking) return;

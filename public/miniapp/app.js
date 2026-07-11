@@ -24,6 +24,9 @@ const I18N = {
     model_not_found: 'Модель не найдена.',
     spec_age: 'Возраст', spec_height: 'Рост', spec_bust: 'Грудь', spec_weight: 'Вес',
     price_label: 'Стоимость:', services_title: 'Основные услуги', services_extra_title: 'Дополнительные услуги', bio_title: 'О модели',
+    welcome: 'Добро пожаловать',
+    badge_new: 'NEW', badge_top: 'TOP', badge_soon: 'СКОРО',
+    coming_soon_note: 'Модель скоро появится в каталоге. Запись пока недоступна.',
     choose_model_btn: 'Выбрать модель',
     open_via_telegram: 'Откройте агентство через Telegram, чтобы отправить заявку.',
     ticket_head_title: 'Заявка',
@@ -52,6 +55,9 @@ const I18N = {
     model_not_found: 'Model not found.',
     spec_age: 'Age', spec_height: 'Height', spec_bust: 'Bust', spec_weight: 'Weight',
     price_label: 'Price:', services_title: 'Services', services_extra_title: 'Additional services', bio_title: 'About the model',
+    welcome: 'Welcome',
+    badge_new: 'NEW', badge_top: 'TOP', badge_soon: 'SOON',
+    coming_soon_note: 'This model will be available soon. Booking is not open yet.',
     choose_model_btn: 'Choose model',
     open_via_telegram: 'Open the agency through Telegram to send a request.',
     ticket_head_title: 'Booking request',
@@ -130,6 +136,88 @@ function formatVND(n) {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' VND';
 }
 
+// Курсы примерные, зашиты в коде — при желании легко скорректировать под
+// актуальный курс. Публичного API обмена валют не подключали намеренно,
+// чтобы цена не "плавала" сама по себе без ведома агентства.
+const CURRENCIES = ['VND', 'USD', 'THB'];
+const RATE_VND_PER = { VND: 1, USD: 25400, THB: 700 };
+const CURRENCY_SYMBOL = { VND: 'VND', USD: '$', THB: '฿' };
+
+let currentCurrency = localStorage.getItem('loveinasia_currency') || 'VND';
+
+function formatPrice(vnd) {
+  const num = Math.round(Number(vnd));
+  if (!num) return '';
+  if (currentCurrency === 'VND') return formatVND(num);
+  const converted = num / RATE_VND_PER[currentCurrency];
+  const rounded = converted >= 100 ? Math.round(converted) : Math.round(converted * 10) / 10;
+  const formatted = rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return currentCurrency === 'USD' ? `${CURRENCY_SYMBOL.USD}${formatted}` : `${formatted} ${CURRENCY_SYMBOL[currentCurrency]}`;
+}
+
+function cycleCurrency() {
+  const idx = CURRENCIES.indexOf(currentCurrency);
+  currentCurrency = CURRENCIES[(idx + 1) % CURRENCIES.length];
+  localStorage.setItem('loveinasia_currency', currentCurrency);
+  router();
+}
+
+// --- Просмотр фото на весь экран ---
+function openLightbox(photos, startIndex) {
+  if (!photos || !photos.length) return;
+  let idx = startIndex || 0;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'lightbox-overlay';
+  overlay.innerHTML = `
+    <button class="lightbox-close" type="button">✕</button>
+    ${photos.length > 1 ? `<button class="lightbox-nav lightbox-prev" type="button">‹</button><button class="lightbox-nav lightbox-next" type="button">›</button>` : ''}
+    <img class="lightbox-img" src="${photos[idx]}">
+    ${photos.length > 1 ? `<div class="lightbox-counter">${idx + 1} / ${photos.length}</div>` : ''}
+  `;
+  document.body.appendChild(overlay);
+
+  function update() {
+    overlay.querySelector('.lightbox-img').src = photos[idx];
+    const counter = overlay.querySelector('.lightbox-counter');
+    if (counter) counter.textContent = `${idx + 1} / ${photos.length}`;
+  }
+  function close() {
+    overlay.remove();
+    if (tg) {
+      tg.BackButton.offClick(close);
+      if (backButtonHandler) tg.BackButton.onClick(backButtonHandler);
+    }
+  }
+  function prev() { idx = (idx - 1 + photos.length) % photos.length; update(); }
+  function next() { idx = (idx + 1) % photos.length; update(); }
+
+  overlay.querySelector('.lightbox-close').onclick = close;
+  overlay.onclick = (e) => { if (e.target === overlay) close(); };
+  const prevBtn = overlay.querySelector('.lightbox-prev');
+  const nextBtn = overlay.querySelector('.lightbox-next');
+  if (prevBtn) prevBtn.onclick = (e) => { e.stopPropagation(); prev(); };
+  if (nextBtn) nextBtn.onclick = (e) => { e.stopPropagation(); next(); };
+
+  // Свайп для перелистывания на телефоне
+  let touchStartX = null;
+  overlay.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+  overlay.addEventListener('touchend', e => {
+    if (touchStartX === null || photos.length < 2) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 50) { dx > 0 ? prev() : next(); }
+    touchStartX = null;
+  });
+
+  // Пока открыт лайтбокс, кнопка "Назад" в Telegram закрывает его,
+  // а не уводит на предыдущий экран
+  if (tg) {
+    if (backButtonHandler) tg.BackButton.offClick(backButtonHandler);
+    tg.BackButton.onClick(close);
+    tg.BackButton.show();
+  }
+}
+
 function bottomNav(active) {
   return `
   <div class="bottom-nav">
@@ -142,11 +230,14 @@ function bottomNav(active) {
   </div>`;
 }
 
+let backButtonHandler = null;
 function setBack(show, fallback = '#/') {
   if (!tg) return;
+  if (backButtonHandler) { tg.BackButton.offClick(backButtonHandler); backButtonHandler = null; }
   if (show) {
+    backButtonHandler = () => { window.location.hash = fallback; };
+    tg.BackButton.onClick(backButtonHandler);
     tg.BackButton.show();
-    tg.BackButton.onClick(() => { window.location.hash = fallback; });
   } else {
     tg.BackButton.hide();
   }
@@ -157,12 +248,25 @@ function setBack(show, fallback = '#/') {
 let currentCategory = 'women';
 let currentCity = 'all';
 
+function cardBadges(m) {
+  const badges = [];
+  if (Number(m.featured) === 1) badges.push(`<span class="badge badge-top">${t('badge_top')}</span>`);
+  if (m.status === 'coming_soon') badges.push(`<span class="badge badge-soon">${t('badge_soon')}</span>`);
+  else if (m.created_at && (Date.now() - new Date(m.created_at.replace(' ', 'T') + 'Z').getTime()) < 7 * 24 * 60 * 60 * 1000) {
+    badges.push(`<span class="badge badge-new">${t('badge_new')}</span>`);
+  }
+  return badges.length ? `<div class="badge-row">${badges.join('')}</div>` : '';
+}
+
 async function renderCatalog() {
   setBack(false);
   if (tg) tg.MainButton.hide();
+  const greeting = tgUser && tgUser.first_name ? `<div class="greeting">${t('welcome')}, ${esc(tgUser.first_name)}</div>` : '';
   app.innerHTML = `
+    <div class="screen">
     <div class="hazard-bar"></div>
     <div class="topbar">
+      ${greeting}
       <h1>LOVEINASIA</h1>
     </div>
     <div class="filter-row" id="cityFilters"></div>
@@ -170,6 +274,7 @@ async function renderCatalog() {
       ${Array.from({ length: 4 }).map(() => `<div class="tag-card"><div class="photo-wrap skeleton"></div></div>`).join('')}
     </div>
     ${bottomNav('catalog')}
+    </div>
   `;
 
   try {
@@ -196,6 +301,7 @@ async function renderCatalog() {
         <div class="photo-wrap">
           <img src="${m.photo_main || 'https://placehold.co/480x640/1a1a1d/666?text=NO+PHOTO'}" loading="lazy">
           <div class="tag-id">№${String(m.id).padStart(4, '0')}</div>
+          ${cardBadges(m)}
         </div>
         <div class="info">
           <h3>${esc(m.name)}</h3>
@@ -214,11 +320,17 @@ async function renderModel(slug) {
   app.innerHTML = `<div class="detail-photo skeleton"></div>`;
   try {
     const { model } = await api(`/models/${slug}`);
+    const isComingSoon = model.status === 'coming_soon';
+    const hasMain = !!model.photo_main;
+    const allPhotos = [model.photo_main, ...(model.photos || [])].filter(Boolean);
+    const thumbOffset = hasMain ? 1 : 0;
     app.innerHTML = `
-      <div class="detail-photo">
+      <div class="screen">
+      <div class="detail-photo" id="mainPhoto" style="cursor:pointer;">
         <img src="${model.photo_main || 'https://placehold.co/600x800/1a1a1d/666?text=NO+PHOTO'}">
+        ${cardBadges(model)}
       </div>
-      ${model.photos && model.photos.length ? `<div class="thumb-row">${model.photos.map(p => `<img src="${p}">`).join('')}</div>` : ''}
+      ${model.photos && model.photos.length ? `<div class="thumb-row">${model.photos.map((p, i) => `<img src="${p}" data-idx="${i + thumbOffset}" style="cursor:pointer;">`).join('')}</div>` : ''}
       <div class="detail-body">
         <h1>${esc(model.name)}</h1>
         <div class="casting-no">Casting № ${String(model.id).padStart(4, '0')}${model.city ? ' · ' + esc(trCity(model.city)) : ''}</div>
@@ -229,13 +341,26 @@ async function renderModel(slug) {
           <div class="spec-cell"><div class="label">${t('spec_bust')}</div><div class="value">${model.bust || '—'}</div></div>
           <div class="spec-cell"><div class="label">${t('spec_weight')}</div><div class="value">${model.weight || '—'}</div></div>
         </div>
-        ${model.price ? `<div class="price-tag">${t('price_label')} ${formatVND(model.price)}</div>` : ''}
+        ${model.price ? `<div class="price-tag" id="priceTag">${t('price_label')} <span id="priceValue">${formatPrice(model.price)}</span> <button type="button" id="currencyBtn" class="currency-btn">${currentCurrency}</button></div>` : ''}
         ${model.bio ? `<div class="services-title" style="margin-bottom:6px;">${t('bio_title')}</div><div class="bio">${esc(model.bio)}</div>` : ''}
         ${model.services ? `<div class="services-block"><div class="services-title">${t('services_title')}</div><div class="services-list">${model.services.split('\n').filter(Boolean).map(s => `<span class="service-pill">${esc(s.trim())}</span>`).join('')}</div></div>` : ''}
         ${model.services_extra ? `<div class="services-block"><div class="services-title">${t('services_extra_title')}</div><div class="services-list">${model.services_extra.split('\n').filter(Boolean).map(s => `<span class="service-pill service-pill-extra">${esc(s.trim())}</span>`).join('')}</div></div>` : ''}
-        <a class="btn full" href="#/model/${model.slug}/book">${t('choose_model_btn')}</a>
+        ${isComingSoon
+          ? `<div class="alert" style="background:#3d9eff1a;border:1px solid #3d9eff55;color:#3d9eff;">${t('coming_soon_note')}</div>`
+          : `<a class="btn full" href="#/model/${model.slug}/book">${t('choose_model_btn')}</a>`}
+      </div>
       </div>
     `;
+    const currencyBtn = document.getElementById('currencyBtn');
+    if (currencyBtn) currencyBtn.onclick = () => { cycleCurrency(); };
+
+    if (allPhotos.length) {
+      const mainPhotoEl = document.getElementById('mainPhoto');
+      if (mainPhotoEl) mainPhotoEl.onclick = () => openLightbox(allPhotos, 0);
+      document.querySelectorAll('.thumb-row img').forEach(img => {
+        img.onclick = () => openLightbox(allPhotos, Number(img.dataset.idx));
+      });
+    }
   } catch (e) {
     app.innerHTML = `<div class="empty-state">${t('model_not_found')}</div>`;
   }
@@ -254,6 +379,7 @@ async function renderBooking(slug) {
   const first = tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') : '';
 
   app.innerHTML = `
+    <div class="screen">
     <div class="detail-body">
       <div class="ticket">
         <div class="ticket-head"><span>${t('ticket_head_title')}</span><span class="stamp">Booking</span></div>
@@ -275,6 +401,7 @@ async function renderBooking(slug) {
           <textarea id="f_comment" rows="3" placeholder="${t('field_comment_ph')}"></textarea>
         </div>
       </div>
+    </div>
     </div>
   `;
 
@@ -329,12 +456,14 @@ async function renderMyBookings(justSent) {
   }
 
   app.innerHTML = `
+    <div class="screen">
     <div class="topbar"><div class="eyebrow">${t('my_bookings_eyebrow')}</div><h1>${t('my_bookings_title')}</h1></div>
     <div class="detail-body" id="list">
       ${justSent ? `<div class="alert success">${t('sent_alert')}</div>` : ''}
       <div class="skeleton" style="height:80px;border-radius:3px;margin-bottom:10px;"></div>
     </div>
     ${bottomNav('my')}
+    </div>
   `;
 
   try {

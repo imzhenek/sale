@@ -64,7 +64,13 @@ async function renderDashboard() {
   if (tg) tg.MainButton.hide();
   app.innerHTML = `
     <div class="hazard-bar"></div>
-    <div class="admin-header"><div class="eyebrow" style="font-family:var(--font-mono);font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:2px;">Admin</div><h1 style="font-family:var(--font-display);text-transform:uppercase;font-size:26px;margin:4px 0 0;">LOVEINASIA</h1></div>
+    <div class="admin-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <div style="min-width:0;">
+        <div class="eyebrow" style="font-family:var(--font-mono);font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:2px;">Admin</div>
+        <h1 style="font-family:var(--font-display);text-transform:uppercase;font-size:clamp(20px, 6vw, 26px);margin:4px 0 0;">LOVEINASIA</h1>
+      </div>
+      <a href="#/admins" class="btn small outline" style="white-space:nowrap;">👤 Сотрудники</a>
+    </div>
     <div class="stat-row" id="stats">
       <div class="stat-card skeleton" style="height:60px;"></div>
       <div class="stat-card skeleton" style="height:60px;"></div>
@@ -109,7 +115,7 @@ function bookingRow(b) {
         <button class="btn small outline" data-msg-toggle="${b.id}">✉️ Написать клиенту</button>
       </div>
       <div id="compose-${b.id}" style="display:none; margin-top:8px;">
-        <textarea id="msgtext-${b.id}" rows="2" placeholder="Текст сообщения — придёт клиенту от бота" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:8px 10px; border-radius:var(--radius); font-family:var(--font-body); font-size:13px;"></textarea>
+        <textarea id="msgtext-${b.id}" rows="2" placeholder="Текст сообщения — придёт клиенту от бота" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:8px 10px; border-radius:var(--radius); font-family:var(--font-body); font-size:16px;"></textarea>
         <div id="msgstatus-${b.id}" style="font-family:var(--font-mono); font-size:11px; margin-top:4px;"></div>
         <button class="btn small full" style="margin-top:6px;" data-msg-send="${b.id}">Отправить</button>
       </div>
@@ -207,7 +213,7 @@ async function renderModels() {
   setBack(false);
   if (tg) tg.MainButton.hide();
   app.innerHTML = `
-    <div class="admin-header" style="display:flex; justify-content:space-between; align-items:center;">
+    <div class="admin-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
       <h1 style="font-family:var(--font-display);text-transform:uppercase;font-size:24px;margin:0;">Модели</h1>
       <a class="btn small" href="#/models/new">+ Добавить</a>
     </div>
@@ -222,7 +228,7 @@ async function renderModels() {
         <img src="${m.photo_main || 'https://placehold.co/100x140/1a1a1d/666?text=--'}">
         <div>
           <div class="name">${esc(m.name)}</div>
-          <div class="sub">${m.city ? esc(m.city) + ' · ' : ''}${m.status === 'active' ? 'Активна' : 'Неактивна'}</div>
+          <div class="sub">${m.city ? esc(m.city) + ' · ' : ''}${{ active: 'Активна', coming_soon: 'Скоро доступна', hidden: 'Неактивна' }[m.status] || m.status}${Number(m.featured) === 1 ? ' · ⭐ Топ' : ''}</div>
         </div>
         <div class="actions">
           <a class="btn small outline" href="#/models/${m.id}/edit">Изм.</a>
@@ -239,7 +245,7 @@ async function renderModels() {
 async function renderModelForm(id) {
   setBack(true, '#/models');
   const isEdit = !!id;
-  let model = { name: '', category: 'women', height: '', bust: '', weight: '', age: '', city: '', nationality: '', services: '', services_extra: '', price: '', bio: '', status: 'active', photo_main: null, photos: [] };
+  let model = { name: '', category: 'women', height: '', bust: '', weight: '', age: '', city: '', nationality: '', services: '', services_extra: '', price: '', bio: '', status: 'active', featured: 0, photo_main: null, photos: [] };
 
   app.innerHTML = `<div class="detail-body"><div class="skeleton" style="height:200px;border-radius:3px;"></div></div>`;
 
@@ -283,8 +289,15 @@ async function renderModelForm(id) {
         <div class="field"><label>Статус</label>
           <select id="f_status">
             <option value="active" ${model.status === 'active' ? 'selected' : ''}>Активна</option>
+            <option value="coming_soon" ${model.status === 'coming_soon' ? 'selected' : ''}>Скоро доступна</option>
             <option value="hidden" ${model.status === 'hidden' ? 'selected' : ''}>Неактивна</option>
           </select>
+        </div>
+        <div class="field">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input id="f_featured" type="checkbox" style="width:16px; height:16px;" ${Number(model.featured) === 1 ? 'checked' : ''}>
+            <span style="text-transform:none; letter-spacing:normal; font-size:13px;">Топ-модель (выделяется бейджем и поднимается в каталоге)</span>
+          </label>
         </div>
 
         <div class="field">
@@ -321,6 +334,7 @@ async function renderModelForm(id) {
     fd.append('services_extra', document.getElementById('f_services_extra').value.trim());
     fd.append('bio', document.getElementById('f_bio').value.trim());
     fd.append('status', document.getElementById('f_status').value);
+    fd.append('featured', document.getElementById('f_featured').checked ? '1' : '0');
 
     const mainFile = document.getElementById('f_photo_main').files[0];
     if (mainFile) fd.append('photo_main', mainFile);
@@ -354,6 +368,79 @@ async function renderModelForm(id) {
   }
 }
 
+async function renderAdmins() {
+  setBack(true, '#/');
+  if (tg) tg.MainButton.hide();
+  app.innerHTML = `
+    <div class="admin-header"><h1 style="font-family:var(--font-display);text-transform:uppercase;font-size:24px;margin:0;">Сотрудники</h1></div>
+    <div class="detail-body">
+      <div class="ticket">
+        <div class="ticket-head"><span>Добавить доступ</span><span class="stamp">Admin</span></div>
+        <div id="addAdminError"></div>
+        <div class="field">
+          <label>Telegram ID сотрудника</label>
+          <input id="newAdminId" type="text" inputmode="numeric" placeholder="Например, 7481918197">
+        </div>
+        <div class="field">
+          <label>Имя (по желанию, для себя)</label>
+          <input id="newAdminName" type="text" placeholder="Как зовут коллегу">
+        </div>
+        <button class="btn full" id="addAdminBtn">Добавить</button>
+        <p style="font-family:var(--font-mono); font-size:11px; color:var(--text-dim); margin-top:12px; line-height:1.6;">
+          Как узнать ID: пусть коллега напишет боту <b>/admin</b> — если доступа ещё нет, бот сам покажет его Telegram ID и попросит переслать его вам.
+        </p>
+      </div>
+    </div>
+    <div class="section-title">Текущий доступ</div>
+    <div id="adminsList"><div class="skeleton" style="height:60px;margin:16px;border-radius:3px;"></div></div>
+  `;
+
+  document.getElementById('addAdminBtn').onclick = async () => {
+    const telegram_id = document.getElementById('newAdminId').value.trim();
+    const name = document.getElementById('newAdminName').value.trim();
+    const btn = document.getElementById('addAdminBtn');
+    btn.disabled = true; btn.textContent = 'Добавляем...';
+    try {
+      await api('/admins', { method: 'POST', body: { telegram_id, name } });
+      renderAdmins();
+    } catch (e) {
+      document.getElementById('addAdminError').innerHTML = `<div class="alert error">${esc(e.message)}</div>`;
+      btn.disabled = false; btn.textContent = 'Добавить';
+    }
+  };
+
+  try {
+    const { admins, currentAdminId } = await api('/admins');
+    const list = document.getElementById('adminsList');
+    list.innerHTML = admins.map(a => `
+      <div class="admin-list-item">
+        <div>
+          <div class="name">${esc(a.name || 'Без имени')}${a.telegram_id === currentAdminId ? ' (вы)' : ''}</div>
+          <div class="sub">ID: ${esc(a.telegram_id)}</div>
+        </div>
+        <div class="actions">
+          ${a.telegram_id === currentAdminId ? '' : `<button class="btn small ghost-danger" data-remove-admin="${a.id}">Убрать</button>`}
+        </div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('[data-remove-admin]').forEach(btn => {
+      btn.onclick = async () => {
+        if (!confirm('Убрать доступ этому сотруднику?')) return;
+        try {
+          await api(`/admins/${btn.dataset.removeAdmin}/delete`, { method: 'POST' });
+          renderAdmins();
+        } catch (e) {
+          showAlert(e.message);
+        }
+      };
+    });
+  } catch (e) {
+    if (e.message.includes('forbidden')) return accessDenied(e.message);
+    document.getElementById('adminsList').innerHTML = `<div class="empty-state">${esc(e.message)}</div>`;
+  }
+}
+
 function router() {
   const hash = window.location.hash.replace(/^#/, '') || '/';
 
@@ -361,6 +448,7 @@ function router() {
   if (hash === '/models') return renderModels();
   if (hash === '/models/new') return renderModelForm(null);
   if (hash === '/bookings') return renderBookings();
+  if (hash === '/admins') return renderAdmins();
 
   let m = hash.match(/^\/models\/(\d+)\/edit$/);
   if (m) return renderModelForm(m[1]);

@@ -46,7 +46,23 @@ CREATE TABLE IF NOT EXISTS bookings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_bookings_client ON bookings(client_telegram_id);
+
+CREATE TABLE IF NOT EXISTS admins (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  telegram_id TEXT UNIQUE NOT NULL,
+  name TEXT,
+  added_at TEXT DEFAULT (datetime('now'))
+);
 `);
+
+// Разово переносим админов из переменной окружения ADMIN_TELEGRAM_IDS в базу,
+// чтобы дальше ими можно было управлять прямо из админки, без Railway.
+const legacyAdminIds = (process.env.ADMIN_TELEGRAM_IDS || '')
+  .split(',').map(s => s.trim()).filter(Boolean);
+const insertAdmin = db.prepare(`INSERT OR IGNORE INTO admins (telegram_id, name) VALUES (?, ?)`);
+for (const id of legacyAdminIds) {
+  insertAdmin.run(id, null);
+}
 
 // Миграция: добавляем колонку веса, если её ещё нет (для уже задеплоенных баз)
 const modelColumns = db.prepare(`PRAGMA table_info(models)`).all().map(c => c.name);
@@ -64,6 +80,9 @@ if (!modelColumns.includes('services')) {
 }
 if (!modelColumns.includes('services_extra')) {
   db.exec(`ALTER TABLE models ADD COLUMN services_extra TEXT`);
+}
+if (!modelColumns.includes('featured')) {
+  db.exec(`ALTER TABLE models ADD COLUMN featured INTEGER DEFAULT 0`);
 }
 if (!modelColumns.includes('price')) {
   db.exec(`ALTER TABLE models ADD COLUMN price TEXT`);

@@ -26,6 +26,25 @@ function bookingText(booking, modelName) {
   return lines.join('\n');
 }
 
+function buildKeyboard(booking) {
+  const rows = [];
+
+  if (booking.status === 'new') {
+    rows.push([
+      { text: '✅ Подтвердить', callback_data: `confirm:${booking.id}` },
+      { text: '❌ Отклонить', callback_data: `decline:${booking.id}` }
+    ]);
+  }
+
+  if (booking.client_username) {
+    rows.push([{ text: '💬 Связаться с клиентом', url: `https://t.me/${booking.client_username}` }]);
+  } else {
+    rows.push([{ text: '💬 Связаться с клиентом', callback_data: `contact_info:${booking.id}` }]);
+  }
+
+  return rows;
+}
+
 async function sendBookingNotification(booking, modelName) {
   if (!API || !CHAT_ID) {
     console.warn('[telegram] TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID не заданы — уведомление не отправлено');
@@ -38,12 +57,7 @@ async function sendBookingNotification(booking, modelName) {
       chat_id: CHAT_ID,
       text: bookingText(booking, modelName),
       parse_mode: 'HTML',
-      reply_markup: {
-        inline_keyboard: [[
-          { text: '✅ Подтвердить', callback_data: `confirm:${booking.id}` },
-          { text: '❌ Отклонить', callback_data: `decline:${booking.id}` }
-        ]]
-      }
+      reply_markup: { inline_keyboard: buildKeyboard(booking) }
     })
   });
   const data = await res.json();
@@ -62,22 +76,17 @@ async function updateNotificationMessage(messageId, booking, modelName) {
       message_id: Number(messageId),
       text: bookingText(booking, modelName),
       parse_mode: 'HTML',
-      reply_markup: booking.status === 'new' ? {
-        inline_keyboard: [[
-          { text: '✅ Подтвердить', callback_data: `confirm:${booking.id}` },
-          { text: '❌ Отклонить', callback_data: `decline:${booking.id}` }
-        ]]
-      } : { inline_keyboard: [] }
+      reply_markup: { inline_keyboard: buildKeyboard(booking) }
     })
   });
 }
 
-async function answerCallbackQuery(callbackQueryId, text) {
+async function answerCallbackQuery(callbackQueryId, text, showAlert = false) {
   if (!API) return;
   await fetch(`${API}/answerCallbackQuery`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ callback_query_id: callbackQueryId, text })
+    body: JSON.stringify({ callback_query_id: callbackQueryId, text, show_alert: showAlert })
   });
 }
 
