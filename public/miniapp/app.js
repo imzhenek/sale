@@ -136,32 +136,6 @@ function formatVND(n) {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' VND';
 }
 
-// Курсы примерные, зашиты в коде — при желании легко скорректировать под
-// актуальный курс. Публичного API обмена валют не подключали намеренно,
-// чтобы цена не "плавала" сама по себе без ведома агентства.
-const CURRENCIES = ['VND', 'USD', 'THB'];
-const RATE_VND_PER = { VND: 1, USD: 25400, THB: 700 };
-const CURRENCY_SYMBOL = { VND: 'VND', USD: '$', THB: '฿' };
-
-let currentCurrency = localStorage.getItem('loveinasia_currency') || 'VND';
-
-function formatPrice(vnd) {
-  const num = Math.round(Number(vnd));
-  if (!num) return '';
-  if (currentCurrency === 'VND') return formatVND(num);
-  const converted = num / RATE_VND_PER[currentCurrency];
-  const rounded = converted >= 100 ? Math.round(converted) : Math.round(converted * 10) / 10;
-  const formatted = rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return currentCurrency === 'USD' ? `${CURRENCY_SYMBOL.USD}${formatted}` : `${formatted} ${CURRENCY_SYMBOL[currentCurrency]}`;
-}
-
-function cycleCurrency() {
-  const idx = CURRENCIES.indexOf(currentCurrency);
-  currentCurrency = CURRENCIES[(idx + 1) % CURRENCIES.length];
-  localStorage.setItem('loveinasia_currency', currentCurrency);
-  router();
-}
-
 // --- Просмотр фото на весь экран ---
 function openLightbox(photos, startIndex) {
   if (!photos || !photos.length) return;
@@ -341,7 +315,7 @@ async function renderModel(slug) {
           <div class="spec-cell"><div class="label">${t('spec_bust')}</div><div class="value">${model.bust || '—'}</div></div>
           <div class="spec-cell"><div class="label">${t('spec_weight')}</div><div class="value">${model.weight || '—'}</div></div>
         </div>
-        ${model.price ? `<div class="price-tag" id="priceTag">${t('price_label')} <span id="priceValue">${formatPrice(model.price)}</span> <button type="button" id="currencyBtn" class="currency-btn">${currentCurrency}</button></div>` : ''}
+        ${model.price ? `<div class="price-tag">${t('price_label')} ${formatVND(model.price)}</div>` : ''}
         ${model.bio ? `<div class="services-title" style="margin-bottom:6px;">${t('bio_title')}</div><div class="bio">${esc(model.bio)}</div>` : ''}
         ${model.services ? `<div class="services-block"><div class="services-title">${t('services_title')}</div><div class="services-list">${model.services.split('\n').filter(Boolean).map(s => `<span class="service-pill">${esc(s.trim())}</span>`).join('')}</div></div>` : ''}
         ${model.services_extra ? `<div class="services-block"><div class="services-title">${t('services_extra_title')}</div><div class="services-list">${model.services_extra.split('\n').filter(Boolean).map(s => `<span class="service-pill service-pill-extra">${esc(s.trim())}</span>`).join('')}</div></div>` : ''}
@@ -351,9 +325,6 @@ async function renderModel(slug) {
       </div>
       </div>
     `;
-    const currencyBtn = document.getElementById('currencyBtn');
-    if (currencyBtn) currencyBtn.onclick = () => { cycleCurrency(); };
-
     if (allPhotos.length) {
       const mainPhotoEl = document.getElementById('mainPhoto');
       if (mainPhotoEl) mainPhotoEl.onclick = () => openLightbox(allPhotos, 0);
@@ -387,10 +358,6 @@ async function renderBooking(slug) {
         <div class="field">
           <label>${t('field_name')}</label>
           <input id="f_name" type="text" value="${esc(first)}" placeholder="${t('field_name_ph')}">
-        </div>
-        <div class="field">
-          <label>${t('field_phone')}</label>
-          <input id="f_phone" type="tel" placeholder="${t('field_phone_ph')}">
         </div>
         <div class="field">
           <label>${t('field_date')}</label>
@@ -428,7 +395,6 @@ async function renderBooking(slug) {
         body: {
           slug,
           client_name,
-          client_phone: document.getElementById('f_phone').value.trim(),
           shoot_date: document.getElementById('f_date').value,
           comment: document.getElementById('f_comment').value.trim()
         }
