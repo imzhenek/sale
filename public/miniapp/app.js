@@ -163,7 +163,6 @@ async function renderCatalog() {
   app.innerHTML = `
     <div class="hazard-bar"></div>
     <div class="topbar">
-      <div class="eyebrow">Casting file / 2026</div>
       <h1>LOVEINASIA</h1>
     </div>
     <div class="filter-row" id="cityFilters"></div>
