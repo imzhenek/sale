@@ -273,8 +273,8 @@ async function renderCatalog() {
     <div class="model-grid" id="grid">
       ${Array.from({ length: 4 }).map(() => `<div class="tag-card"><div class="photo-wrap skeleton"></div></div>`).join('')}
     </div>
-    ${bottomNav('catalog')}
     </div>
+    ${bottomNav('catalog')}
   `;
 
   try {
@@ -462,8 +462,8 @@ async function renderMyBookings(justSent) {
       ${justSent ? `<div class="alert success">${t('sent_alert')}</div>` : ''}
       <div class="skeleton" style="height:80px;border-radius:3px;margin-bottom:10px;"></div>
     </div>
-    ${bottomNav('my')}
     </div>
+    ${bottomNav('my')}
   `;
 
   try {
