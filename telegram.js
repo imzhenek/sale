@@ -11,12 +11,13 @@ const STATUS_LABELS = {
 
 function bookingText(booking, modelName) {
   const lines = [
-    `<b>НОВАЯ ЗАЯВКА! #${booking.id}</b>`,
+    `<b>НОВАЯ ЗАЯВКА! #${booking.id}</b>${booking.source === 'website' ? ' 🌐 (сайт)' : ''}`,
     `Статус: ${STATUS_LABELS[booking.status] || booking.status}`,
     ``,
     `Модель: ${modelName || 'не выбрана / общий запрос'}`,
     `Клиент: ${booking.client_name}${booking.client_username ? ' (@' + booking.client_username + ')' : ''}`,
     booking.client_phone ? `Телефон: ${booking.client_phone}` : null,
+    booking.client_contact ? `Доп. контакт: ${booking.client_contact}` : null,
     booking.shoot_type ? `Тип: ${booking.shoot_type}` : null,
     booking.shoot_date ? `Желаемая дата: ${booking.shoot_date}` : null,
     booking.location ? `Локация: ${booking.location}` : null,

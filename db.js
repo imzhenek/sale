@@ -72,4 +72,12 @@ if (!modelColumns.includes('nationality')) {
   db.exec(`ALTER TABLE models ADD COLUMN nationality TEXT`);
 }
 
+const bookingColumns = db.prepare(`PRAGMA table_info(bookings)`).all().map(c => c.name);
+if (!bookingColumns.includes('source')) {
+  db.exec(`ALTER TABLE bookings ADD COLUMN source TEXT DEFAULT 'miniapp'`);
+}
+if (!bookingColumns.includes('client_contact')) {
+  db.exec(`ALTER TABLE bookings ADD COLUMN client_contact TEXT`);
+}
+
 module.exports = db;
