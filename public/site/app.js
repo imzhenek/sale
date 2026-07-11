@@ -49,7 +49,7 @@ async function renderCatalog() {
       ${header()}
       <section class="site-hero">
         <div class="site-container">
-          <h1>Каталог<br><em>моделей</em><br>агентства.</h1>
+          <h1>Каталог<br><em>моделей</em></h1>
           <p>Каталог моделей агентства Loveinasia. Выбирайте, изучайте анкету и отправляйте заявку — мы подтвердим её в течение суток.</p>
         </div>
       </section>
