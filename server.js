@@ -12,6 +12,10 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+// Загруженные фото лежат в data/uploads (не в public!) — именно эта папка
+// будет смонтирована как постоянный диск (Railway Volume), поэтому URL
+// /uploads/... нужно раздавать отдельно, явным маршрутом.
+app.use('/uploads', express.static(path.join(__dirname, 'data', 'uploads')));
 
 app.use('/telegram', telegramWebhook);
 app.use('/api/admin', apiAdmin);
