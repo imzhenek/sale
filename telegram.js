@@ -6,7 +6,7 @@ const STATUS_LABELS = {
   new: '🆕 Новая',
   confirmed: '✅ Подтверждена',
   declined: '❌ Отклонена',
-  done: '🏁 Съёмка проведена'
+  done: '🏁 Проведена'
 };
 
 function bookingText(booking, modelName) {
