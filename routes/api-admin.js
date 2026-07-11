@@ -143,6 +143,13 @@ router.post('/bookings/:id/status', async (req, res) => {
   res.json({ ok: true });
 });
 
+router.post('/bookings/:id/delete', (req, res) => {
+  const booking = db.prepare(`SELECT * FROM bookings WHERE id = ?`).get(req.params.id);
+  if (!booking) return res.status(404).json({ error: 'not_found' });
+  db.prepare(`DELETE FROM bookings WHERE id = ?`).run(req.params.id);
+  res.json({ ok: true });
+});
+
 router.post('/bookings/:id/message', async (req, res) => {
   const { text } = req.body;
   if (!text || !text.trim()) return res.status(400).json({ error: 'validation', message: 'Введите текст сообщения' });

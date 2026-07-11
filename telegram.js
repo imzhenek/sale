@@ -12,6 +12,7 @@ const STATUS_LABELS = {
 function bookingText(booking, modelName) {
   const lines = [
     `<b>НОВАЯ ЗАЯВКА! #${booking.id}</b>${booking.source === 'website' ? ' 🌐 (сайт)' : ''}`,
+    booking.client_relevance === 'not_actual' ? `⚠️ <b>КЛИЕНТ ОТМЕТИЛ КАК НЕАКТУАЛЬНУЮ</b> — можно не связываться` : null,
     `Статус: ${STATUS_LABELS[booking.status] || booking.status}`,
     ``,
     `Модель: ${modelName || 'не выбрана / общий запрос'}`,

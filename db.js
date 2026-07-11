@@ -98,5 +98,8 @@ if (!bookingColumns.includes('source')) {
 if (!bookingColumns.includes('client_contact')) {
   db.exec(`ALTER TABLE bookings ADD COLUMN client_contact TEXT`);
 }
+if (!bookingColumns.includes('client_relevance')) {
+  db.exec(`ALTER TABLE bookings ADD COLUMN client_relevance TEXT DEFAULT 'actual'`);
+}
 
 module.exports = db;

@@ -44,6 +44,9 @@ const I18N = {
     general_request: 'Общий запрос', desired_date: 'Желаемая дата:',
     status_new: 'Ожидает подтверждения', status_confirmed: 'Подтверждена',
     status_declined: 'Отклонена', status_done: 'Съёмка проведена',
+    relevance_label: 'Актуальность', relevance_actual: 'Актуально', relevance_not_actual: 'Неактуально',
+    relevance_mark_not_actual: 'Уже не актуально', relevance_mark_actual: 'Снова актуально',
+    relevance_hint: 'Если планы изменились — отметьте, чтобы агентство не связывалось зря',
     generic_error: 'Ошибка запроса'
   },
   en: {
@@ -75,6 +78,9 @@ const I18N = {
     general_request: 'General request', desired_date: 'Preferred date:',
     status_new: 'Pending confirmation', status_confirmed: 'Confirmed',
     status_declined: 'Declined', status_done: 'Shoot completed',
+    relevance_label: 'Relevance', relevance_actual: 'Still relevant', relevance_not_actual: 'Not relevant',
+    relevance_mark_not_actual: 'No longer needed', relevance_mark_actual: 'Relevant again',
+    relevance_hint: 'If your plans changed, mark this so the agency won\'t reach out for nothing',
     generic_error: 'Request error'
   }
 };
@@ -442,6 +448,8 @@ async function renderMyBookings(justSent) {
     list.innerHTML = (justSent ? `<div class="alert success">${t('sent_alert')}</div>` : '') +
       bookings.map(b => {
         const [label, cls] = statusLabel(b.status);
+        const canToggle = b.status === 'new' || b.status === 'confirmed';
+        const isNotActual = b.client_relevance === 'not_actual';
         return `
         <div class="booking-card">
           <div class="row-top">
@@ -449,8 +457,31 @@ async function renderMyBookings(justSent) {
             <span class="status-badge ${cls}">${label}</span>
           </div>
           <div class="meta">${b.shoot_date ? t('desired_date') + ' ' + b.shoot_date : ''}</div>
+          ${canToggle ? `
+            <div class="relevance-row">
+              <span class="relevance-badge ${isNotActual ? 'relevance-off' : 'relevance-on'}">${isNotActual ? t('relevance_not_actual') : t('relevance_actual')}</span>
+              <button type="button" class="relevance-toggle" data-relevance-id="${b.id}" data-next="${isNotActual ? 'actual' : 'not_actual'}">${isNotActual ? t('relevance_mark_actual') : t('relevance_mark_not_actual')}</button>
+            </div>
+          ` : ''}
         </div>`;
       }).join('');
+
+    list.querySelectorAll('[data-relevance-id]').forEach(btn => {
+      btn.onclick = async () => {
+        btn.disabled = true;
+        try {
+          await api(`/my-bookings/${btn.dataset.relevanceId}/relevance`, {
+            method: 'POST',
+            body: { relevance: btn.dataset.next }
+          });
+          tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred('success');
+          renderMyBookings(false);
+        } catch (e) {
+          btn.disabled = false;
+          alert(e.message);
+        }
+      };
+    });
   } catch (e) {
     document.getElementById('list').innerHTML = `<div class="empty-state">${esc(e.message)}</div>`;
   }

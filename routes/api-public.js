@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireTelegramAuth } = require('../middleware/telegram-auth');
-const { sendBookingNotification } = require('../telegram');
+const { sendBookingNotification, updateNotificationMessage } = require('../telegram');
 
 const router = express.Router();
 
@@ -102,6 +102,32 @@ router.get('/my-bookings', (req, res) => {
     ORDER BY bookings.created_at DESC
   `).all(String(req.tgUser.id));
   res.json({ bookings });
+});
+
+// Клиент помечает свою же заявку как актуальную/неактуальную —
+// это сигнал для агентства, нужно ли ещё связываться, отдельный от статуса.
+router.post('/my-bookings/:id/relevance', async (req, res) => {
+  const { relevance } = req.body;
+  if (!['actual', 'not_actual'].includes(relevance)) {
+    return res.status(400).json({ error: 'validation', message: 'Некорректное значение' });
+  }
+
+  const booking = db.prepare(`SELECT * FROM bookings WHERE id = ?`).get(req.params.id);
+  if (!booking || booking.client_telegram_id !== String(req.tgUser.id)) {
+    return res.status(404).json({ error: 'not_found' });
+  }
+
+  db.prepare(`UPDATE bookings SET client_relevance = ? WHERE id = ?`).run(relevance, booking.id);
+  const updated = db.prepare(`SELECT * FROM bookings WHERE id = ?`).get(booking.id);
+
+  try {
+    const model = booking.model_id ? db.prepare(`SELECT name FROM models WHERE id = ?`).get(booking.model_id) : null;
+    await updateNotificationMessage(booking.telegram_message_id, updated, model ? model.name : null);
+  } catch (e) {
+    console.error('[relevance] failed to update telegram message', e);
+  }
+
+  res.json({ booking: updated });
 });
 
 module.exports = router;

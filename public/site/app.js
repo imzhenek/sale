@@ -201,7 +201,7 @@ async function renderModel(slug) {
               <div id="bookingMsg"></div>
               <form id="bookingForm">
                 <div class="field"><label>Имя</label><input id="f_name" type="text" required></div>
-                <div class="field"><label>Telegram / доп. контакт</label><input id="f_contact" type="text" placeholder="@username"></div>
+                <div class="field"><label>Telegram username</label><input id="f_contact" type="text" required placeholder="@username"></div>
                 <div class="field"><label>Желаемая дата</label><input id="f_date" type="date"></div>
                 <div class="field"><label>Комментарий</label><textarea id="f_comment" rows="3" placeholder="Детали, бюджет, референсы..."></textarea></div>
                 <button type="submit" class="btn full" id="submitBtn">Отправить заявку</button>
@@ -227,8 +227,13 @@ async function renderModel(slug) {
     const btn = document.getElementById('submitBtn');
     const msg = document.getElementById('bookingMsg');
     const client_name = document.getElementById('f_name').value.trim();
+    const client_contact = document.getElementById('f_contact').value.trim();
     if (!client_name) {
       msg.innerHTML = `<div class="alert error">Укажите имя</div>`;
+      return;
+    }
+    if (!client_contact) {
+      msg.innerHTML = `<div class="alert error">Укажите Telegram username для связи</div>`;
       return;
     }
     btn.disabled = true; btn.textContent = 'Отправка...';
@@ -238,7 +243,7 @@ async function renderModel(slug) {
         body: {
           slug,
           client_name,
-          client_contact: document.getElementById('f_contact').value.trim(),
+          client_contact,
           shoot_date: document.getElementById('f_date').value,
           comment: document.getElementById('f_comment').value.trim()
         }

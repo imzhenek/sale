@@ -160,6 +160,13 @@ button, input, textarea, select{ font-family: inherit; }
 .btn.full{ width:100%; }
 .btn.small{ padding: 8px 12px; font-size: 11px; }
 .btn.ghost-danger{ background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+.icon-btn-danger{
+  background: transparent; border: 1px solid var(--line); color: var(--text-dim);
+  width: 26px; height: 26px; border-radius: var(--radius); cursor: pointer;
+  font-size: 13px; line-height: 1; display:flex; align-items:center; justify-content:center;
+  flex-shrink: 0;
+}
+.icon-btn-danger:active{ border-color: var(--accent); color: var(--accent); }
 .btn.ghost-acid{ background: transparent; border: 1px solid var(--acid); color: var(--acid); }
 .btn[disabled]{ opacity: 0.5; pointer-events:none; }
 
@@ -194,6 +201,23 @@ button, input, textarea, select{ font-family: inherit; }
 .booking-card .row-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px; }
 .booking-card .model{ font-family: var(--font-display); text-transform:uppercase; font-size: 16px; }
 .booking-card .meta{ font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
+
+.relevance-row{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line);
+}
+.relevance-badge{
+  font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 4px 9px; border-radius: var(--radius);
+}
+.relevance-on{ background: #d4ff3d22; color: var(--acid); border: 1px solid #d4ff3d55; }
+.relevance-off{ background: #ff3d1a22; color: var(--accent); border: 1px solid #ff3d1a55; }
+.relevance-toggle{
+  font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;
+  background: transparent; border: 1px solid var(--line); color: var(--text-dim);
+  padding: 5px 9px; border-radius: var(--radius); cursor: pointer;
+}
+.relevance-toggle:active{ border-color: var(--accent); color: var(--text); }
 
 /* --- admin --- */
 .admin-header{ padding: 16px; border-bottom: 1px solid var(--line); }

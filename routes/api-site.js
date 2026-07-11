@@ -12,6 +12,9 @@ router.post('/bookings', async (req, res) => {
   if (!client_name) {
     return res.status(400).json({ error: 'validation', message: 'Укажите имя' });
   }
+  if (!client_contact || !client_contact.trim()) {
+    return res.status(400).json({ error: 'validation', message: 'Укажите Telegram username для связи' });
+  }
 
   const model = slug ? db.prepare(`SELECT * FROM models WHERE slug = ?`).get(slug) : null;
 

@@ -97,12 +97,16 @@ function bookingRow(b) {
   const [label, cls] = STATUS_LABEL[b.status] || [b.status, 'status-new'];
   return `
     <div class="admin-list-item" style="flex-direction:column; align-items:stretch;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
         <span class="name" style="font-size:15px;">${esc(b.model_name || 'Общий запрос')}</span>
-        <span class="status-badge ${cls}">${label}</span>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span class="status-badge ${cls}">${label}</span>
+          <button class="icon-btn-danger" data-delete-booking="${b.id}" title="Удалить заявку">🗑</button>
+        </div>
       </div>
       <div class="sub">${esc(b.client_name)}${b.client_username ? ' · @' + esc(b.client_username) : ''}${b.client_phone ? ' · ' + esc(b.client_phone) : ''}</div>
       <div class="sub">${b.shoot_date ? 'Дата: ' + esc(b.shoot_date) : ''}</div>
+      ${b.client_relevance === 'not_actual' ? `<div class="sub" style="color:var(--accent); font-weight:700;">⚠️ Клиент отметил как неактуальную — можно не связываться</div>` : ''}
       ${b.status === 'new' ? `
         <div style="display:flex; gap:8px; margin-top:8px;">
           <button class="btn small ghost-acid" data-act="confirm" data-id="${b.id}">Подтвердить</button>
@@ -151,6 +155,20 @@ function bindBookingActions(container) {
     btn.onclick = () => {
       const box = document.getElementById(`compose-${btn.dataset.msgToggle}`);
       box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    };
+  });
+
+  container.querySelectorAll('[data-delete-booking]').forEach(btn => {
+    btn.onclick = async () => {
+      if (!confirm('Удалить заявку безвозвратно?')) return;
+      btn.disabled = true;
+      try {
+        await api(`/bookings/${btn.dataset.deleteBooking}/delete`, { method: 'POST' });
+        router();
+      } catch (e) {
+        alert(e.message);
+        btn.disabled = false;
+      }
     };
   });
 
